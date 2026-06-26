@@ -52,6 +52,8 @@ C:\Users\audachang\Dropbox\09_AI-testing-sites\Codex\taipei-rental-plan\index.ht
 
 到光仁小學步行距離使用 `schoolWalkDistanceLabel`、`schoolWalkMinutesLabel`、`schoolWalkBasis`。目前多數是生活圈估計，不是精確門牌實算；取得完整地址後應更新這三個欄位，並用頁面上的 Google Maps 步行路線連結核對。
 
+步行路線地圖使用 Leaflet 與 OpenStreetMap 圖磚。地圖座標目前維護在 `app.js` 的 `rentalMapPoints`，以公開地段或搜尋生活圈標示租賃區域；更新完整門牌後，需同步修正座標與上方步行距離欄位。
+
 ## 資料品質規則
 
 不要把估計值和實測值混在一起。實測後請在 `evidence` 裡標示日期、時段、資料來源與是否為雨天/尖峰。

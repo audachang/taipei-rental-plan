@@ -74,7 +74,59 @@
     rentalSearchLinks: document.querySelector("#rentalSearchLinks"),
     rentalPreviewScope: document.querySelector("#rentalPreviewScope"),
     rentalPreviewList: document.querySelector("#rentalPreviewList"),
-    showRentalDetails: document.querySelector("#showRentalDetails")
+    showRentalDetails: document.querySelector("#showRentalDetails"),
+    mapScope: document.querySelector("#mapScope"),
+    mapUpdated: document.querySelector("#mapUpdated"),
+    rentalMap: document.querySelector("#rentalMap"),
+    mapRouteList: document.querySelector("#mapRouteList")
+  };
+
+  const schoolPoint = {
+    name: "光仁小學",
+    address: "台北市萬華區萬大路423巷15號",
+    lat: 25.0213,
+    lng: 121.5002
+  };
+
+  const routeColors = {
+    "wanhua-longshan": "#26736b",
+    "ximen-xiaonanmen": "#256f93",
+    "guting-nanmen": "#8a5a18",
+    "banqiao-fuzhong": "#6f5a9d",
+    "dingxi-yongan": "#9a4b4b"
+  };
+
+  const rentalMapPoints = {
+    "wanhua-xiyuan-3br": { lat: 25.0264, lng: 121.4990, label: "西園路二段" },
+    "wanhua-juguang-3br": { lat: 25.0320, lng: 121.5024, label: "莒光路生活圈" },
+    "wanhua-nanning-2br": { lat: 25.0360, lng: 121.5038, label: "南寧路生活圈" },
+    "wanhua-newer-elevator": { lat: 25.0260, lng: 121.5015, label: "萬華電梯住宅搜尋" },
+    "wanhua-market-scan": { lat: 25.0248, lng: 121.5008, label: "萬華家庭型掃描" },
+    "ximen-hanzhong-2br": { lat: 25.0434, lng: 121.5072, label: "西門站周邊" },
+    "xiaonanmen-elevator": { lat: 25.0365, lng: 121.5098, label: "小南門站周邊" },
+    "zhongzheng-older-apartment": { lat: 25.0337, lng: 121.5120, label: "中正西側公寓" },
+    "ximen-newer-studio-not-main": { lat: 25.0453, lng: 121.5100, label: "西門新屋齡搜尋" },
+    "ximen-market-scan": { lat: 25.0406, lng: 121.5088, label: "西門/小南門掃描" },
+    "guting-elevator-2br": { lat: 25.0263, lng: 121.5225, label: "古亭站周邊" },
+    "nanmen-3br-family": { lat: 25.0328, lng: 121.5130, label: "南門市場生活圈" },
+    "daan-guting-newer": { lat: 25.0253, lng: 121.5260, label: "大安/古亭新屋齡搜尋" },
+    "guting-older-budget": { lat: 25.0293, lng: 121.5170, label: "古亭老公寓搜尋" },
+    "guting-market-scan": { lat: 25.0280, lng: 121.5202, label: "古亭/南門掃描" },
+    "banqiao-fuzhong-3br": { lat: 25.0084, lng: 121.4590, label: "府中站周邊" },
+    "banqiao-xinpu-elevator": { lat: 25.0237, lng: 121.4688, label: "新埔站周邊" },
+    "banqiao-station-family": { lat: 25.0144, lng: 121.4640, label: "板橋車站周邊" },
+    "banqiao-older-budget": { lat: 25.0103, lng: 121.4562, label: "府中老公寓搜尋" },
+    "banqiao-market-scan": { lat: 25.0160, lng: 121.4645, label: "板橋家庭型掃描" },
+    "dingxi-2br-elevator": { lat: 25.0136, lng: 121.5154, label: "頂溪站周邊" },
+    "yongan-family-3br": { lat: 25.0024, lng: 121.5117, label: "永安市場周邊" },
+    "zhonghe-newer-2br": { lat: 24.9934, lng: 121.5062, label: "中和新屋齡搜尋" },
+    "yonghe-older-budget": { lat: 25.0100, lng: 121.5133, label: "永和老公寓搜尋" },
+    "dingxi-yongan-market-scan": { lat: 25.0056, lng: 121.5112, label: "頂溪/永安市場掃描" }
+  };
+
+  const mapState = {
+    map: null,
+    layers: null
   };
 
   function clamp(value, min, max) {
@@ -384,6 +436,146 @@
     return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=walking`;
   }
 
+  function getMapPanelVisible() {
+    const panel = document.querySelector("#panel-map");
+    return Boolean(panel && !panel.hidden);
+  }
+
+  function getRouteItems() {
+    const items = [];
+    options.forEach((option) => {
+      getFilteredRentalChoices(option.id).forEach((choice) => {
+        const point = rentalMapPoints[choice.id];
+        if (!point) return;
+        items.push({
+          option,
+          choice,
+          point,
+          walk: getSchoolWalkEstimate(choice, option.id)
+        });
+      });
+    });
+    return items;
+  }
+
+  function makeMapIcon(type) {
+    return window.L.divIcon({
+      className: `map-div-icon ${type}-map-icon`,
+      html: '<span class="map-pin" aria-hidden="true"></span>',
+      iconSize: [24, 24],
+      iconAnchor: [12, 12]
+    });
+  }
+
+  function createRoutePopup(item) {
+    const popup = document.createElement("div");
+    const title = document.createElement("strong");
+    const meta = document.createElement("p");
+    const basis = document.createElement("p");
+    const route = makeExternalLink("Google 步行路線", getSchoolWalkUrl(item.choice), "secondary-link");
+
+    popup.className = "map-popup";
+    title.textContent = item.choice.title;
+    meta.textContent = `${item.option.name} · ${item.point.label} · ${item.walk.distance} / ${item.walk.minutes}`;
+    basis.textContent = item.walk.basis;
+    popup.append(title, meta, basis, route);
+    return popup;
+  }
+
+  function ensureMapInitialized() {
+    if (!elements.rentalMap || !window.L) return false;
+    if (mapState.map) return true;
+
+    mapState.map = window.L.map(elements.rentalMap, {
+      scrollWheelZoom: false
+    }).setView([schoolPoint.lat, schoolPoint.lng], 13);
+
+    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(mapState.map);
+
+    mapState.layers = window.L.layerGroup().addTo(mapState.map);
+    window.L.marker([schoolPoint.lat, schoolPoint.lng], { icon: makeMapIcon("school") })
+      .bindPopup(`<strong>${schoolPoint.name}</strong><br>${schoolPoint.address}`)
+      .addTo(mapState.map);
+
+    return true;
+  }
+
+  function renderMapRouteList(routeItems) {
+    elements.mapRouteList.innerHTML = "";
+
+    if (routeItems.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state compact";
+      empty.textContent = "目前屋齡條件下沒有可呈現的租賃路線，請放寬屋齡篩選。";
+      elements.mapRouteList.append(empty);
+      return;
+    }
+
+    routeItems.forEach((item) => {
+      const row = document.createElement("article");
+      const text = document.createElement("div");
+      const title = document.createElement("h3");
+      const meta = document.createElement("p");
+      const route = makeExternalLink("Google 步行路線", getSchoolWalkUrl(item.choice), "secondary-link");
+
+      row.className = "map-route-row";
+      title.textContent = item.choice.title;
+      meta.textContent = `${item.option.name} · ${item.point.label} · 到校步行 ${item.walk.distance}，${item.walk.minutes}`;
+      text.append(title, meta);
+      row.append(text, route);
+      elements.mapRouteList.append(row);
+    });
+  }
+
+  function renderRouteMap(routeItems) {
+    const ageLabel = state.filters.buildingAgeLimit === 999 ? "屋齡不限" : `屋齡 ${state.filters.buildingAgeLimit} 年內`;
+    elements.mapScope.textContent = `${rentalCatalog.scope} 目前條件：${ageLabel}；地圖列出 ${routeItems.length} 筆。`;
+    elements.mapUpdated.textContent = `更新 ${rentalCatalog.updatedAt || "-"}`;
+    renderMapRouteList(routeItems);
+
+    if (!getMapPanelVisible()) return;
+
+    if (!ensureMapInitialized()) {
+      elements.rentalMap.textContent = "地圖套件未載入；下方仍保留每筆 Google 步行路線連結。";
+      return;
+    }
+
+    mapState.layers.clearLayers();
+    const bounds = window.L.latLngBounds([[schoolPoint.lat, schoolPoint.lng]]);
+
+    routeItems.forEach((item) => {
+      const color = routeColors[item.option.id] || "#256f93";
+      const routeLine = window.L.polyline(
+        [
+          [item.point.lat, item.point.lng],
+          [schoolPoint.lat, schoolPoint.lng]
+        ],
+        {
+          color,
+          weight: 3,
+          opacity: 0.78,
+          dashArray: "7 7"
+        }
+      );
+      const marker = window.L.marker([item.point.lat, item.point.lng], { icon: makeMapIcon("rental") })
+        .bindPopup(createRoutePopup(item));
+
+      routeLine.addTo(mapState.layers);
+      marker.addTo(mapState.layers);
+      bounds.extend([item.point.lat, item.point.lng]);
+    });
+
+    mapState.map.invalidateSize();
+    if (routeItems.length > 0) {
+      mapState.map.fitBounds(bounds, { padding: [28, 28], maxZoom: 13 });
+    } else {
+      mapState.map.setView([schoolPoint.lat, schoolPoint.lng], 13);
+    }
+  }
+
   function renderRentalPreview(bestOption) {
     elements.rentalPreviewList.innerHTML = "";
     if (!window.RENTAL_CHOICES_BY_OPTION && !window.BEST_RENTAL_CHOICES) {
@@ -562,6 +754,13 @@
       panel.classList.toggle("active", isActive);
       panel.hidden = !isActive;
     });
+
+    if (tabName === "map") {
+      renderRouteMap(getRouteItems());
+      window.setTimeout(() => {
+        if (mapState.map) mapState.map.invalidateSize();
+      }, 0);
+    }
   }
 
   function updateWeightLabels() {
@@ -619,6 +818,7 @@
     renderCollectionQueue();
     renderRentalPreview(bestOption);
     renderRentalChoices();
+    renderRouteMap(getRouteItems());
   }
 
   elements.rentLimit.addEventListener("change", (event) => {

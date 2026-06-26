@@ -102,7 +102,8 @@ h2 {
 .summary-strip,
 .rental-preview-panel,
 .data-panel,
-.rental-panel {
+.rental-panel,
+.map-panel {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
@@ -230,8 +231,8 @@ input[type="range"] {
 }
 
 .workspace-tabs {
-  display: inline-grid;
-  grid-template-columns: repeat(2, minmax(0, max-content));
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.25rem;
   width: fit-content;
   max-width: 100%;
@@ -540,6 +541,138 @@ input[type="range"] {
   font-size: 0.875rem;
 }
 
+.map-panel {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.map-panel p {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.map-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.legend-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--border-strong);
+}
+
+.school-dot {
+  background: var(--accent);
+}
+
+.rental-dot {
+  background: var(--teal);
+}
+
+.legend-line {
+  width: 1.75rem;
+  border-top: 3px dashed var(--blue);
+}
+
+.rental-map {
+  width: 100%;
+  min-height: 34rem;
+  height: min(62vh, 42rem);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.leaflet-container {
+  font: inherit;
+  color: var(--text);
+}
+
+.map-div-icon {
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 0;
+}
+
+.map-pin {
+  display: block;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 3px solid var(--surface);
+  border-radius: 50%;
+  box-shadow: 0 1px 6px rgba(17, 24, 39, 0.28);
+}
+
+.school-map-icon .map-pin {
+  background: var(--accent);
+}
+
+.rental-map-icon .map-pin {
+  background: var(--teal);
+}
+
+.map-popup {
+  display: grid;
+  gap: 0.375rem;
+  max-width: 18rem;
+}
+
+.map-popup p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.map-note {
+  padding: 0.625rem 0.75rem;
+  border-left: 3px solid var(--accent);
+  background: #f5e9e2;
+  color: var(--text) !important;
+}
+
+.map-route-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.map-route-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fafbfc;
+}
+
+.map-route-row h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.map-route-row p {
+  margin: 0.25rem 0 0;
+}
+
 .summary-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -797,6 +930,7 @@ th:first-child {
   .summary-strip,
   .source-list,
   .rental-preview-list,
+  .map-route-list,
   .rental-metrics,
   .rental-detail-grid {
     grid-template-columns: 1fr;
@@ -824,7 +958,8 @@ th:first-child {
   }
 
   .rental-group-heading,
-  .rental-card-top {
+  .rental-card-top,
+  .map-route-row {
     align-items: stretch;
     flex-direction: column;
   }
