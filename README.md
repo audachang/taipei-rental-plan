@@ -9,7 +9,7 @@
 - `app.js`: 篩選、排序、權重計分、比較表與摘要產生邏輯。
 - `data/options.js`: 候選居住點資料。現在是示範資料，後續應替換為實查房源與交通紀錄。
 - `data/evidence.js`: 第一批資料來源、租金摘要與下一步採集清單。
-- `data/rental-choices.js`: 目前最佳方案下的租賃選擇、看屋重點與外部連結。
+- `data/rental-choices.js`: 各候選方案下的租賃選擇、屋齡、看屋重點與外部連結。
 
 ## 線上部署
 
@@ -45,6 +45,10 @@ C:\Users\audachang\Dropbox\09_AI-testing-sites\Codex\taipei-rental-plan\index.ht
 - `livabilityScore`: 居住機能與家庭生活便利性，1 到 5 分。
 - `risks`: 主要風險。
 - `checks`: 現場勘查事項。
+
+## 更新租賃選擇
+
+編輯 `data/rental-choices.js` 的 `window.RENTAL_CHOICES_BY_OPTION`。每個候選方案用 `optionId` 對應到 `data/options.js`，每組維持 5 筆 `choices`。屋齡篩選使用 `buildingAgeYears`，不確定屋齡的搜尋入口可填 `999`，讓它只在「不限」時出現。
 
 ## 資料品質規則
 

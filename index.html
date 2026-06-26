@@ -47,6 +47,17 @@
             </select>
           </label>
 
+          <label class="field">
+            <span>租屋屋齡上限</span>
+            <select id="buildingAgeLimit">
+              <option value="999" selected>不限</option>
+              <option value="40">40 年內</option>
+              <option value="30">30 年內</option>
+              <option value="20">20 年內</option>
+              <option value="10">10 年內</option>
+            </select>
+          </label>
+
           <label class="check-row">
             <input id="directOnly" type="checkbox">
             <span>只看免轉乘或短程接送</span>
@@ -112,7 +123,7 @@
 
         <div class="workspace-tabs" role="tablist" aria-label="工作區分頁">
           <button id="tab-overview" class="workspace-tab active" data-tab="overview" type="button" role="tab" aria-selected="true" aria-controls="panel-overview">方案總覽</button>
-          <button id="tab-rentals" class="workspace-tab" data-tab="rentals" type="button" role="tab" aria-selected="false" aria-controls="panel-rentals">最佳方案租賃選擇</button>
+          <button id="tab-rentals" class="workspace-tab" data-tab="rentals" type="button" role="tab" aria-selected="false" aria-controls="panel-rentals">各方案租賃選擇</button>
         </div>
 
         <section id="panel-overview" class="tab-panel active" role="tabpanel" aria-labelledby="tab-overview">
@@ -131,10 +142,10 @@
             </div>
           </section>
 
-          <section class="rental-preview-panel" aria-label="租屋選擇摘要">
+          <section class="rental-preview-panel" aria-label="目前最佳方案租屋選擇摘要">
             <div class="section-heading">
               <div>
-                <h2>租屋選擇摘要</h2>
+                <h2>目前最佳方案租屋摘要</h2>
                 <p id="rentalPreviewScope">載入中</p>
               </div>
               <button id="showRentalDetails" class="text-button strong" type="button">完整細項</button>
@@ -191,7 +202,7 @@
         </section>
 
         <section id="panel-rentals" class="tab-panel" role="tabpanel" aria-labelledby="tab-rentals" hidden>
-          <section class="rental-panel" aria-label="最佳方案租賃選擇">
+          <section class="rental-panel" aria-label="各方案租賃選擇">
             <div class="section-heading">
               <div>
                 <h2 id="rentalCandidateName">最佳方案租賃選擇</h2>

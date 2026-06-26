@@ -14,12 +14,24 @@
     choices: [],
     links: []
   };
+  const rentalCatalog = window.RENTAL_CHOICES_BY_OPTION || {
+    updatedAt: rentalChoices.updatedAt,
+    scope: rentalChoices.scope,
+    options: {
+      [rentalChoices.bestOptionId || "wanhua-longshan"]: {
+        optionName: rentalChoices.bestOptionName,
+        choices: rentalChoices.choices,
+        links: rentalChoices.links
+      }
+    }
+  };
   const state = {
     selected: new Set(options.slice(0, 3).map((option) => option.id)),
     sort: "score",
     filters: {
       rentLimit: 50000,
       commuteLimit: 40,
+      buildingAgeLimit: 999,
       directOnly: false
     },
     weights: {
@@ -35,6 +47,7 @@
   const elements = {
     rentLimit: document.querySelector("#rentLimit"),
     commuteLimit: document.querySelector("#commuteLimit"),
+    buildingAgeLimit: document.querySelector("#buildingAgeLimit"),
     directOnly: document.querySelector("#directOnly"),
     resetFilters: document.querySelector("#resetFilters"),
     cards: document.querySelector("#cards"),
@@ -95,6 +108,27 @@
         if (state.sort === "rent") return a.rent - b.rent;
         return b.score - a.score;
       });
+  }
+
+  function getBestOption(filteredOptions) {
+    if (filteredOptions.length === 0) return null;
+    return filteredOptions.reduce((winner, option) => {
+      return option.score > winner.score ? option : winner;
+    }, filteredOptions[0]);
+  }
+
+  function getRentalGroup(optionId) {
+    return rentalCatalog.options[optionId] || {
+      optionName: "未設定方案",
+      choices: [],
+      links: []
+    };
+  }
+
+  function getFilteredRentalChoices(optionId) {
+    return getRentalGroup(optionId).choices.filter((choice) => {
+      return choice.buildingAgeYears <= state.filters.buildingAgeLimit;
+    });
   }
 
   function formatRent(value) {
@@ -195,9 +229,7 @@
       return;
     }
 
-    const best = filteredOptions.reduce((winner, option) => {
-      return option.score > winner.score ? option : winner;
-    }, filteredOptions[0]);
+    const best = getBestOption(filteredOptions);
 
     elements.bestName.textContent = `${best.name} (${best.score})`;
     elements.bestCommute.textContent = best.commuteRange;
@@ -322,11 +354,26 @@
     return link;
   }
 
-  function renderRentalPreview() {
-    elements.rentalPreviewScope.textContent = `${rentalChoices.bestOptionName} · 前 3 筆可追蹤租屋線索`;
+  function renderRentalPreview(bestOption) {
     elements.rentalPreviewList.innerHTML = "";
+    if (!bestOption) {
+      elements.rentalPreviewScope.textContent = "目前沒有符合條件的方案。";
+      return;
+    }
 
-    rentalChoices.choices.slice(0, 3).forEach((choice) => {
+    const choices = getFilteredRentalChoices(bestOption.id).slice(0, 3);
+    const ageLabel = state.filters.buildingAgeLimit === 999 ? "屋齡不限" : `屋齡 ${state.filters.buildingAgeLimit} 年內`;
+    elements.rentalPreviewScope.textContent = `${bestOption.name} · ${ageLabel} · 顯示 ${choices.length} 筆`;
+
+    if (choices.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state compact";
+      empty.textContent = "目前屋齡條件下沒有租屋選擇，請放寬屋齡或切到完整細項檢查其他方案。";
+      elements.rentalPreviewList.append(empty);
+      return;
+    }
+
+    choices.forEach((choice) => {
       const row = document.createElement("article");
       const title = document.createElement("h3");
       const meta = document.createElement("p");
@@ -334,82 +381,112 @@
 
       row.className = "rental-preview-row";
       title.textContent = choice.title;
-      meta.textContent = `${choice.rentLabel} · ${choice.layout} · ${choice.size} · ${choice.location}`;
+      meta.textContent = `${choice.rentLabel} · ${choice.layout} · ${choice.size} · ${choice.buildingAgeLabel} · ${choice.location}`;
       row.append(title, meta, link);
       elements.rentalPreviewList.append(row);
     });
   }
 
   function renderRentalChoices() {
-    elements.rentalCandidateName.textContent = `${rentalChoices.bestOptionName}租賃選擇`;
-    elements.rentalScope.textContent = rentalChoices.scope;
-    elements.rentalUpdated.textContent = `更新 ${rentalChoices.updatedAt || "-"}`;
+    const ageLabel = state.filters.buildingAgeLimit === 999 ? "屋齡不限" : `只看屋齡 ${state.filters.buildingAgeLimit} 年內`;
+    elements.rentalCandidateName.textContent = "各方案租賃選擇";
+    elements.rentalScope.textContent = `${rentalCatalog.scope} 目前條件：${ageLabel}。`;
+    elements.rentalUpdated.textContent = `更新 ${rentalCatalog.updatedAt || "-"}`;
     elements.rentalChoices.innerHTML = "";
     elements.rentalSearchLinks.innerHTML = "";
 
-    if (rentalChoices.choices.length === 0) {
-      const empty = document.createElement("div");
-      empty.className = "empty-state";
-      empty.textContent = "目前沒有租賃選擇資料。";
-      elements.rentalChoices.append(empty);
-      return;
-    }
-
-    rentalChoices.choices.forEach((choice) => {
-      const card = document.createElement("article");
-      const top = document.createElement("div");
-      const titleWrap = document.createElement("div");
+    options.forEach((option) => {
+      const group = getRentalGroup(option.id);
+      const choices = getFilteredRentalChoices(option.id);
+      const groupNode = document.createElement("section");
+      const heading = document.createElement("div");
       const title = document.createElement("h3");
-      const meta = document.createElement("p");
-      const fit = document.createElement("span");
-      const metrics = document.createElement("dl");
-      const detail = document.createElement("div");
-      const action = document.createElement("p");
+      const count = document.createElement("span");
+      const list = document.createElement("div");
+      const links = document.createElement("div");
 
-      card.className = "rental-card";
-      top.className = "rental-card-top";
-      fit.className = "fit-badge";
-      metrics.className = "rental-metrics";
-      detail.className = "rental-detail-grid";
-      action.className = "next-action";
+      groupNode.className = "rental-option-group";
+      heading.className = "rental-group-heading";
+      count.className = "status-pill subtle";
+      list.className = "rental-choice-list";
+      links.className = "link-strip";
 
-      title.textContent = choice.title;
-      meta.textContent = `${choice.sourceName} · ${choice.location}`;
-      fit.textContent = `家庭適配 ${choice.familyFit}`;
-      titleWrap.append(title, meta);
-      top.append(titleWrap, fit);
+      title.textContent = group.optionName || option.name;
+      count.textContent = `${choices.length} / 5 筆符合`;
+      heading.append(title, count);
+      groupNode.append(heading);
 
-      [
-        ["月租", choice.rentLabel],
-        ["格局", choice.layout],
-        ["坪數", choice.size],
-        ["樓層", choice.floor],
-        ["距離", choice.distanceLabel],
-        ["通學判斷", choice.commuteFit]
-      ].forEach(([label, value]) => {
-        metrics.append(metric(label, value));
+      if (choices.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "empty-state compact";
+        empty.textContent = "目前屋齡條件下沒有符合的租屋選擇。";
+        list.append(empty);
+      }
+
+      choices.forEach((choice) => {
+        list.append(renderRentalCard(choice));
       });
 
-      detail.append(
-        listBlock("優點", choice.highlights),
-        listBlock("風險", choice.risks)
-      );
+      group.links.forEach((item) => {
+        links.append(makeExternalLink(item.label, item.url, "source-link"));
+      });
 
-      action.textContent = choice.nextAction;
+      groupNode.append(list, links);
+      elements.rentalChoices.append(groupNode);
+    });
+  }
 
-      card.append(
-        top,
-        metrics,
-        detail,
-        action,
-        makeExternalLink("開啟房源", choice.url, "primary-link")
-      );
-      elements.rentalChoices.append(card);
+  function renderRentalCard(choice) {
+    const card = document.createElement("article");
+    const top = document.createElement("div");
+    const titleWrap = document.createElement("div");
+    const title = document.createElement("h3");
+    const meta = document.createElement("p");
+    const fit = document.createElement("span");
+    const metrics = document.createElement("dl");
+    const detail = document.createElement("div");
+    const action = document.createElement("p");
+
+    card.className = "rental-card";
+    top.className = "rental-card-top";
+    fit.className = "fit-badge";
+    metrics.className = "rental-metrics";
+    detail.className = "rental-detail-grid";
+    action.className = "next-action";
+
+    title.textContent = choice.title;
+    meta.textContent = `${choice.sourceName} · ${choice.location}`;
+    fit.textContent = `家庭適配 ${choice.familyFit}`;
+    titleWrap.append(title, meta);
+    top.append(titleWrap, fit);
+
+    [
+      ["月租", choice.rentLabel],
+      ["格局", choice.layout],
+      ["坪數", choice.size],
+      ["樓層", choice.floor],
+      ["屋齡", choice.buildingAgeLabel],
+      ["距離", choice.distanceLabel],
+      ["通學判斷", choice.commuteFit]
+    ].forEach(([label, value]) => {
+      metrics.append(metric(label, value));
     });
 
-    rentalChoices.links.forEach((item) => {
-      elements.rentalSearchLinks.append(makeExternalLink(item.label, item.url, "source-link"));
-    });
+    detail.append(
+      listBlock("優點", choice.highlights),
+      listBlock("風險", choice.risks)
+    );
+
+    action.textContent = choice.nextAction;
+
+    card.append(
+      top,
+      metrics,
+      detail,
+      action,
+      makeExternalLink("開啟房源", choice.url, "primary-link")
+    );
+    return card;
   }
 
   function activateTab(tabName) {
@@ -472,13 +549,14 @@
   function render() {
     updateWeightLabels();
     const filteredOptions = getFilteredOptions();
+    const bestOption = getBestOption(filteredOptions);
     renderSummary(filteredOptions);
     renderCards(filteredOptions);
     renderCompareTable();
     renderSources();
     renderRentBenchmarks();
     renderCollectionQueue();
-    renderRentalPreview();
+    renderRentalPreview(bestOption);
     renderRentalChoices();
   }
 
@@ -492,6 +570,11 @@
     render();
   });
 
+  elements.buildingAgeLimit.addEventListener("change", (event) => {
+    state.filters.buildingAgeLimit = Number(event.target.value);
+    render();
+  });
+
   elements.directOnly.addEventListener("change", (event) => {
     state.filters.directOnly = event.target.checked;
     render();
@@ -501,10 +584,12 @@
     state.filters = {
       rentLimit: 50000,
       commuteLimit: 40,
+      buildingAgeLimit: 999,
       directOnly: false
     };
     elements.rentLimit.value = "50000";
     elements.commuteLimit.value = "40";
+    elements.buildingAgeLimit.value = "999";
     elements.directOnly.checked = false;
     render();
   });
