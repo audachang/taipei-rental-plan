@@ -50,6 +50,8 @@ C:\Users\audachang\Dropbox\09_AI-testing-sites\Codex\taipei-rental-plan\index.ht
 
 編輯 `data/rental-choices.js` 的 `window.RENTAL_CHOICES_BY_OPTION`。每個候選方案用 `optionId` 對應到 `data/options.js`，每組維持 5 筆 `choices`。屋齡篩選使用 `buildingAgeYears`，不確定屋齡的搜尋入口可填 `999`，讓它只在「不限」時出現。
 
+到光仁小學步行距離使用 `schoolWalkDistanceLabel`、`schoolWalkMinutesLabel`、`schoolWalkBasis`。目前多數是生活圈估計，不是精確門牌實算；取得完整地址後應更新這三個欄位，並用頁面上的 Google Maps 步行路線連結核對。
+
 ## 資料品質規則
 
 不要把估計值和實測值混在一起。實測後請在 `evidence` 裡標示日期、時段、資料來源與是否為雨天/尖峰。

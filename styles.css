@@ -514,9 +514,16 @@ input[type="range"] {
 }
 
 .primary-link,
+.secondary-link,
 .source-link {
   color: var(--blue);
   font-weight: 800;
+}
+
+.inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
 .link-strip {

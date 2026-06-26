@@ -354,6 +354,36 @@
     return link;
   }
 
+  function getSchoolWalkEstimate(choice, optionId) {
+    if (choice.schoolWalkDistanceLabel && choice.schoolWalkMinutesLabel) {
+      return {
+        distance: choice.schoolWalkDistanceLabel,
+        minutes: choice.schoolWalkMinutesLabel,
+        basis: choice.schoolWalkBasis || "以房源地址估計"
+      };
+    }
+
+    const fallback = {
+      "wanhua-longshan": ["約 0.8-2.0 km", "約 12-30 分", "以萬華近校生活圈估計"],
+      "ximen-xiaonanmen": ["約 2.0-3.5 km", "約 30-52 分", "以西門/小南門生活圈估計"],
+      "guting-nanmen": ["約 3.5-5.0 km", "約 50-75 分", "以古亭/南門生活圈估計"],
+      "banqiao-fuzhong": ["約 6.0-8.5 km", "約 90-130 分", "跨河步行不建議，主要供距離感參考"],
+      "dingxi-yongan": ["約 4.5-6.5 km", "約 65-100 分", "跨河步行不建議，主要供距離感參考"]
+    }[optionId] || ["待精確地址", "待精確地址", "需取得完整門牌"];
+
+    return {
+      distance: fallback[0],
+      minutes: fallback[1],
+      basis: fallback[2]
+    };
+  }
+
+  function getSchoolWalkUrl(choice) {
+    const origin = encodeURIComponent(`${choice.location} ${choice.title}`);
+    const destination = encodeURIComponent("台北市萬華區萬大路423巷15號 光仁小學");
+    return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=walking`;
+  }
+
   function renderRentalPreview(bestOption) {
     elements.rentalPreviewList.innerHTML = "";
     if (!window.RENTAL_CHOICES_BY_OPTION && !window.BEST_RENTAL_CHOICES) {
@@ -383,15 +413,20 @@
     }
 
     choices.forEach((choice) => {
+      const walk = getSchoolWalkEstimate(choice, bestOption.id);
       const row = document.createElement("article");
       const title = document.createElement("h3");
       const meta = document.createElement("p");
       const link = makeExternalLink("開啟房源", choice.url, "primary-link");
+      const route = makeExternalLink("步行路線", getSchoolWalkUrl(choice), "secondary-link");
+      const actions = document.createElement("div");
 
       row.className = "rental-preview-row";
+      actions.className = "inline-actions";
       title.textContent = choice.title;
-      meta.textContent = `${choice.rentLabel} · ${choice.layout} · ${choice.size} · ${choice.buildingAgeLabel} · ${choice.location}`;
-      row.append(title, meta, link);
+      meta.textContent = `${choice.rentLabel} · ${choice.layout} · ${choice.size} · ${choice.buildingAgeLabel} · 到校步行 ${walk.distance}`;
+      actions.append(link, route);
+      row.append(title, meta, actions);
       elements.rentalPreviewList.append(row);
     });
   }
@@ -441,7 +476,7 @@
       }
 
       choices.forEach((choice) => {
-        list.append(renderRentalCard(choice));
+        list.append(renderRentalCard(choice, option.id));
       });
 
       group.links.forEach((item) => {
@@ -453,7 +488,7 @@
     });
   }
 
-  function renderRentalCard(choice) {
+  function renderRentalCard(choice, optionId) {
     const card = document.createElement("article");
     const top = document.createElement("div");
     const titleWrap = document.createElement("div");
@@ -463,6 +498,8 @@
     const metrics = document.createElement("dl");
     const detail = document.createElement("div");
     const action = document.createElement("p");
+    const routeLinks = document.createElement("div");
+    const walk = getSchoolWalkEstimate(choice, optionId);
 
     card.className = "rental-card";
     top.className = "rental-card-top";
@@ -470,6 +507,7 @@
     metrics.className = "rental-metrics";
     detail.className = "rental-detail-grid";
     action.className = "next-action";
+    routeLinks.className = "inline-actions";
 
     title.textContent = choice.title;
     meta.textContent = `${choice.sourceName} · ${choice.location}`;
@@ -483,6 +521,8 @@
       ["坪數", choice.size],
       ["樓層", choice.floor],
       ["屋齡", choice.buildingAgeLabel],
+      ["到校步行", walk.distance],
+      ["步行時間", walk.minutes],
       ["距離", choice.distanceLabel],
       ["通學判斷", choice.commuteFit]
     ].forEach(([label, value]) => {
@@ -495,13 +535,17 @@
     );
 
     action.textContent = choice.nextAction;
+    routeLinks.append(
+      makeExternalLink("開啟房源", choice.url, "primary-link"),
+      makeExternalLink("Google 步行路線", getSchoolWalkUrl(choice), "secondary-link")
+    );
 
     card.append(
       top,
       metrics,
       detail,
       action,
-      makeExternalLink("開啟房源", choice.url, "primary-link")
+      routeLinks
     );
     return card;
   }
