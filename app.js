@@ -32,8 +32,10 @@
       rentLimit: 50000,
       commuteLimit: 40,
       buildingAgeLimit: 999,
+      petFriendlyOnly: false,
       directOnly: false
     },
+    mapHiddenChoices: new Set(),
     weights: {
       commute: 35,
       pickup: 20,
@@ -48,6 +50,7 @@
     rentLimit: document.querySelector("#rentLimit"),
     commuteLimit: document.querySelector("#commuteLimit"),
     buildingAgeLimit: document.querySelector("#buildingAgeLimit"),
+    petFriendlyOnly: document.querySelector("#petFriendlyOnly"),
     directOnly: document.querySelector("#directOnly"),
     resetFilters: document.querySelector("#resetFilters"),
     cards: document.querySelector("#cards"),
@@ -86,14 +89,6 @@
     address: "台北市萬華區萬大路423巷15號",
     lat: 25.0213,
     lng: 121.5002
-  };
-
-  const routeColors = {
-    "wanhua-longshan": "#26736b",
-    "ximen-xiaonanmen": "#256f93",
-    "guting-nanmen": "#8a5a18",
-    "banqiao-fuzhong": "#6f5a9d",
-    "dingxi-yongan": "#9a4b4b"
   };
 
   const rentalMapPoints = {
@@ -177,10 +172,22 @@
     };
   }
 
+  function isPetFriendlyCandidate(choice) {
+    return ["yes", "candidate"].includes(choice.petPolicyStatus);
+  }
+
   function getFilteredRentalChoices(optionId) {
     return getRentalGroup(optionId).choices.filter((choice) => {
-      return choice.buildingAgeYears <= state.filters.buildingAgeLimit;
+      const ageMatch = choice.buildingAgeYears <= state.filters.buildingAgeLimit;
+      const petMatch = !state.filters.petFriendlyOnly || isPetFriendlyCandidate(choice);
+      return ageMatch && petMatch;
     });
+  }
+
+  function getRentalFilterLabel(prefix) {
+    const ageLabel = state.filters.buildingAgeLimit === 999 ? "屋齡不限" : `${prefix || ""}屋齡 ${state.filters.buildingAgeLimit} 年內`;
+    const petLabel = state.filters.petFriendlyOnly ? "寵物友善候選" : "寵物不限";
+    return `${ageLabel}，${petLabel}`;
   }
 
   function formatRent(value) {
@@ -458,6 +465,10 @@
     return items;
   }
 
+  function getVisibleRouteItems(routeItems) {
+    return routeItems.filter((item) => !state.mapHiddenChoices.has(item.choice.id));
+  }
+
   function makeMapIcon(type) {
     return window.L.divIcon({
       className: `map-div-icon ${type}-map-icon`,
@@ -476,7 +487,7 @@
 
     popup.className = "map-popup";
     title.textContent = item.choice.title;
-    meta.textContent = `${item.option.name} · ${item.point.label} · ${item.walk.distance} / ${item.walk.minutes}`;
+    meta.textContent = `${item.option.name} · ${item.point.label} · ${item.walk.distance} / ${item.walk.minutes} · ${item.choice.petPolicyLabel || "寵物條件待確認"}`;
     basis.textContent = item.walk.basis;
     popup.append(title, meta, basis, route);
     return popup;
@@ -509,30 +520,43 @@
     if (routeItems.length === 0) {
       const empty = document.createElement("div");
       empty.className = "empty-state compact";
-      empty.textContent = "目前屋齡條件下沒有可呈現的租賃路線，請放寬屋齡篩選。";
+      empty.textContent = "目前租賃條件下沒有可呈現的地圖項目，請放寬屋齡或寵物篩選。";
       elements.mapRouteList.append(empty);
       return;
     }
 
     routeItems.forEach((item) => {
       const row = document.createElement("article");
+      const label = document.createElement("label");
+      const checkbox = document.createElement("input");
       const text = document.createElement("div");
       const title = document.createElement("h3");
       const meta = document.createElement("p");
       const route = makeExternalLink("Google 步行路線", getSchoolWalkUrl(item.choice), "secondary-link");
 
       row.className = "map-route-row";
+      label.className = "map-toggle";
+      checkbox.type = "checkbox";
+      checkbox.checked = !state.mapHiddenChoices.has(item.choice.id);
+      checkbox.setAttribute("aria-label", `在地圖顯示 ${item.choice.title}`);
+      checkbox.addEventListener("change", () => {
+        if (checkbox.checked) state.mapHiddenChoices.delete(item.choice.id);
+        else state.mapHiddenChoices.add(item.choice.id);
+        renderRouteMap(getRouteItems());
+      });
       title.textContent = item.choice.title;
-      meta.textContent = `${item.option.name} · ${item.point.label} · 到校步行 ${item.walk.distance}，${item.walk.minutes}`;
+      meta.textContent = `${item.option.name} · ${item.point.label} · 到校步行 ${item.walk.distance}，${item.walk.minutes} · ${item.choice.petPolicyLabel || "寵物條件待確認"}`;
       text.append(title, meta);
-      row.append(text, route);
+      label.append(checkbox, text);
+      row.append(label, route);
       elements.mapRouteList.append(row);
     });
   }
 
   function renderRouteMap(routeItems) {
-    const ageLabel = state.filters.buildingAgeLimit === 999 ? "屋齡不限" : `屋齡 ${state.filters.buildingAgeLimit} 年內`;
-    elements.mapScope.textContent = `${rentalCatalog.scope} 目前條件：${ageLabel}；地圖列出 ${routeItems.length} 筆。`;
+    const visibleRouteItems = getVisibleRouteItems(routeItems);
+    const filterLabel = getRentalFilterLabel("");
+    elements.mapScope.textContent = `${rentalCatalog.scope} 目前條件：${filterLabel}；地圖顯示 ${visibleRouteItems.length} / ${routeItems.length} 筆。`;
     elements.mapUpdated.textContent = `更新 ${rentalCatalog.updatedAt || "-"}`;
     renderMapRouteList(routeItems);
 
@@ -546,30 +570,16 @@
     mapState.layers.clearLayers();
     const bounds = window.L.latLngBounds([[schoolPoint.lat, schoolPoint.lng]]);
 
-    routeItems.forEach((item) => {
-      const color = routeColors[item.option.id] || "#256f93";
-      const routeLine = window.L.polyline(
-        [
-          [item.point.lat, item.point.lng],
-          [schoolPoint.lat, schoolPoint.lng]
-        ],
-        {
-          color,
-          weight: 3,
-          opacity: 0.78,
-          dashArray: "7 7"
-        }
-      );
+    visibleRouteItems.forEach((item) => {
       const marker = window.L.marker([item.point.lat, item.point.lng], { icon: makeMapIcon("rental") })
         .bindPopup(createRoutePopup(item));
 
-      routeLine.addTo(mapState.layers);
       marker.addTo(mapState.layers);
       bounds.extend([item.point.lat, item.point.lng]);
     });
 
     mapState.map.invalidateSize();
-    if (routeItems.length > 0) {
+    if (visibleRouteItems.length > 0) {
       mapState.map.fitBounds(bounds, { padding: [28, 28], maxZoom: 13 });
     } else {
       mapState.map.setView([schoolPoint.lat, schoolPoint.lng], 13);
@@ -593,13 +603,13 @@
     }
 
     const choices = getFilteredRentalChoices(bestOption.id).slice(0, 3);
-    const ageLabel = state.filters.buildingAgeLimit === 999 ? "屋齡不限" : `屋齡 ${state.filters.buildingAgeLimit} 年內`;
-    elements.rentalPreviewScope.textContent = `${bestOption.name} · ${ageLabel} · 顯示 ${choices.length} 筆`;
+    const filterLabel = getRentalFilterLabel("");
+    elements.rentalPreviewScope.textContent = `${bestOption.name} · ${filterLabel} · 顯示 ${choices.length} 筆`;
 
     if (choices.length === 0) {
       const empty = document.createElement("div");
       empty.className = "empty-state compact";
-      empty.textContent = "目前屋齡條件下沒有租屋選擇，請放寬屋齡或切到完整細項檢查其他方案。";
+      empty.textContent = "目前條件下沒有租屋選擇，請放寬屋齡、寵物篩選，或切到完整細項檢查其他方案。";
       elements.rentalPreviewList.append(empty);
       return;
     }
@@ -616,7 +626,7 @@
       row.className = "rental-preview-row";
       actions.className = "inline-actions";
       title.textContent = choice.title;
-      meta.textContent = `${choice.rentLabel} · ${choice.layout} · ${choice.size} · ${choice.buildingAgeLabel} · 到校步行 ${walk.distance}`;
+      meta.textContent = `${choice.rentLabel} · ${choice.layout} · ${choice.size} · ${choice.buildingAgeLabel} · ${choice.petPolicyLabel || "寵物條件待確認"} · 到校步行 ${walk.distance}`;
       actions.append(link, route);
       row.append(title, meta, actions);
       elements.rentalPreviewList.append(row);
@@ -624,9 +634,9 @@
   }
 
   function renderRentalChoices() {
-    const ageLabel = state.filters.buildingAgeLimit === 999 ? "屋齡不限" : `只看屋齡 ${state.filters.buildingAgeLimit} 年內`;
+    const filterLabel = getRentalFilterLabel("只看");
     elements.rentalCandidateName.textContent = "各方案租賃選擇";
-    elements.rentalScope.textContent = `${rentalCatalog.scope} 目前條件：${ageLabel}。`;
+    elements.rentalScope.textContent = `${rentalCatalog.scope} 目前條件：${filterLabel}。`;
     elements.rentalUpdated.textContent = `更新 ${rentalCatalog.updatedAt || "-"}`;
     elements.rentalChoices.innerHTML = "";
     elements.rentalSearchLinks.innerHTML = "";
@@ -663,7 +673,7 @@
       if (choices.length === 0) {
         const empty = document.createElement("div");
         empty.className = "empty-state compact";
-        empty.textContent = "目前屋齡條件下沒有符合的租屋選擇。";
+        empty.textContent = "目前屋齡或寵物條件下沒有符合的租屋選擇。";
         list.append(empty);
       }
 
@@ -713,6 +723,7 @@
       ["坪數", choice.size],
       ["樓層", choice.floor],
       ["屋齡", choice.buildingAgeLabel],
+      ["寵物", choice.petPolicyLabel || "待房東確認"],
       ["到校步行", walk.distance],
       ["步行時間", walk.minutes],
       ["距離", choice.distanceLabel],
@@ -836,6 +847,11 @@
     render();
   });
 
+  elements.petFriendlyOnly.addEventListener("change", (event) => {
+    state.filters.petFriendlyOnly = event.target.checked;
+    render();
+  });
+
   elements.directOnly.addEventListener("change", (event) => {
     state.filters.directOnly = event.target.checked;
     render();
@@ -846,12 +862,15 @@
       rentLimit: 50000,
       commuteLimit: 40,
       buildingAgeLimit: 999,
+      petFriendlyOnly: false,
       directOnly: false
     };
     elements.rentLimit.value = "50000";
     elements.commuteLimit.value = "40";
     elements.buildingAgeLimit.value = "999";
+    elements.petFriendlyOnly.checked = false;
     elements.directOnly.checked = false;
+    state.mapHiddenChoices.clear();
     render();
   });
 

@@ -60,6 +60,11 @@
           </label>
 
           <label class="check-row">
+            <input id="petFriendlyOnly" type="checkbox">
+            <span>只看寵物友善候選</span>
+          </label>
+
+          <label class="check-row">
             <input id="directOnly" type="checkbox">
             <span>只看免轉乘或短程接送</span>
           </label>
@@ -220,10 +225,10 @@
         </section>
 
         <section id="panel-map" class="tab-panel" role="tabpanel" aria-labelledby="tab-map" hidden>
-          <section class="map-panel" aria-label="租賃選項到光仁小學步行路線圖">
+          <section class="map-panel" aria-label="租賃選項地圖">
             <div class="section-heading">
               <div>
-                <h2>租賃選項步行路線地圖</h2>
+                <h2>租賃選項地圖</h2>
                 <p id="mapScope">以光仁小學為中心，標示目前租賃篩選條件下的候選區域。</p>
               </div>
               <span id="mapUpdated" class="status-pill">-</span>
@@ -231,11 +236,10 @@
             <div class="map-legend" aria-label="地圖圖例">
               <span><i class="legend-dot school-dot" aria-hidden="true"></i>光仁小學</span>
               <span><i class="legend-dot rental-dot" aria-hidden="true"></i>租賃選項區域</span>
-              <span><i class="legend-line" aria-hidden="true"></i>估計步行方向</span>
             </div>
             <div id="rentalMap" class="rental-map" role="img" aria-label="光仁小學與租賃選項區域位置地圖"></div>
-            <p class="map-note">地圖點位以房源公開地段或搜尋生活圈估算；取得完整門牌後，請用各項目的 Google 步行路線連結重算門到門距離。</p>
-            <div id="mapRouteList" class="map-route-list" aria-label="地圖路線清單"></div>
+            <p class="map-note">地圖只顯示點位，不繪製路線。點位以房源公開地段或搜尋生活圈估算；下方項目可勾選決定是否顯示在地圖上。</p>
+            <div id="mapRouteList" class="map-route-list" aria-label="地圖項目清單"></div>
           </section>
         </section>
       </section>
@@ -268,9 +272,9 @@
     </template>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="data/evidence.js?v=20260626-map"></script>
-    <script src="data/options.js?v=20260626-map"></script>
-    <script src="data/rental-choices.js?v=20260626-map"></script>
-    <script src="app.js?v=20260626-map"></script>
+    <script src="data/evidence.js?v=20260626-map2"></script>
+    <script src="data/options.js?v=20260626-map2"></script>
+    <script src="data/rental-choices.js?v=20260626-map2"></script>
+    <script src="app.js?v=20260626-map2"></script>
   </body>
 </html>

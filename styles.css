@@ -583,11 +583,6 @@ input[type="range"] {
   background: var(--teal);
 }
 
-.legend-line {
-  width: 1.75rem;
-  border-top: 3px dashed var(--blue);
-}
-
 .rental-map {
   width: 100%;
   min-height: 34rem;
@@ -654,7 +649,7 @@ input[type="range"] {
 
 .map-route-row {
   display: flex;
-  align-items: center;
+  align-items: start;
   justify-content: space-between;
   gap: 1rem;
   min-width: 0;
@@ -662,6 +657,18 @@ input[type="range"] {
   border: 1px solid var(--border);
   border-radius: 6px;
   background: #fafbfc;
+}
+
+.map-toggle {
+  display: flex;
+  align-items: start;
+  gap: 0.625rem;
+  min-width: 0;
+}
+
+.map-toggle input {
+  flex: 0 0 auto;
+  margin-top: 0.125rem;
 }
 
 .map-route-row h3 {
