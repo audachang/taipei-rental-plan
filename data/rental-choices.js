@@ -530,4 +530,11 @@ window.RENTAL_CHOICES_BY_OPTION = {
   }
 };
 
-window.BEST_RENTAL_CHOICES = window.RENTAL_CHOICES_BY_OPTION.options["wanhua-longshan"];
+window.BEST_RENTAL_CHOICES = {
+  updatedAt: window.RENTAL_CHOICES_BY_OPTION.updatedAt,
+  bestOptionId: "wanhua-longshan",
+  bestOptionName: window.RENTAL_CHOICES_BY_OPTION.options["wanhua-longshan"].optionName,
+  scope: window.RENTAL_CHOICES_BY_OPTION.scope,
+  choices: window.RENTAL_CHOICES_BY_OPTION.options["wanhua-longshan"].choices,
+  links: window.RENTAL_CHOICES_BY_OPTION.options["wanhua-longshan"].links
+};

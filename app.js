@@ -356,6 +356,15 @@
 
   function renderRentalPreview(bestOption) {
     elements.rentalPreviewList.innerHTML = "";
+    if (!window.RENTAL_CHOICES_BY_OPTION && !window.BEST_RENTAL_CHOICES) {
+      elements.rentalPreviewScope.textContent = "租屋資料尚未載入，請重新整理頁面。";
+      const empty = document.createElement("div");
+      empty.className = "empty-state compact";
+      empty.textContent = "租屋資料檔未載入；若剛更新過頁面，請重新整理或清除快取。";
+      elements.rentalPreviewList.append(empty);
+      return;
+    }
+
     if (!bestOption) {
       elements.rentalPreviewScope.textContent = "目前沒有符合條件的方案。";
       return;
@@ -394,6 +403,14 @@
     elements.rentalUpdated.textContent = `更新 ${rentalCatalog.updatedAt || "-"}`;
     elements.rentalChoices.innerHTML = "";
     elements.rentalSearchLinks.innerHTML = "";
+
+    if (!window.RENTAL_CHOICES_BY_OPTION && !window.BEST_RENTAL_CHOICES) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "租屋資料檔未載入；請重新整理頁面或清除瀏覽器快取。";
+      elements.rentalChoices.append(empty);
+      return;
+    }
 
     options.forEach((option) => {
       const group = getRentalGroup(option.id);
