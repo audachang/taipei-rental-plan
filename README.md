@@ -5,11 +5,13 @@
 ## 目前成果
 
 - `index.html`: 可直接開啟的互動比較網頁。
+- `rental-search.html`: 針對選定區域的房源廣搜與推薦網頁。
 - `styles.css`: 區域比較、推薦面板與響應式版面樣式。
 - `app.js`: 區域新增、篩選、排序、推薦計分、比較表與摘要產生邏輯。
+- `rental-search.js`: 房源入口產生、房源排序、仲介聯絡文字與看屋清單複製邏輯。
 - `data/options.js`: 已整理的核心候選區域資料。
 - `data/evidence.js`: 政府資料來源與租金摘要，供區域卡片補充租金背景。
-- `data/rental-choices.js`: 舊版房源細項資料仍保留作為後續看屋參考，但首頁不再載入。
+- `data/rental-choices.js`: 每個候選區域的房源追蹤項目與穩定搜尋入口；首頁不載入，房源廣搜頁會使用。
 
 ## 線上部署
 
@@ -26,6 +28,28 @@ https://audachang.github.io/taipei-rental-plan/
 ```text
 C:\Users\audachang\Dropbox\09_AI-testing-sites\Codex\taipei-rental-plan\index.html
 ```
+
+或直接開啟房源廣搜頁：
+
+```text
+C:\Users\audachang\Dropbox\09_AI-testing-sites\Codex\taipei-rental-plan\rental-search.html
+```
+
+## 房源廣搜推薦
+
+`rental-search.html` 針對已選定的候選生活圈，整合三類入口：
+
+- 已整理的房源或平台搜尋入口。
+- 591、樂屋、好房網、房價網等租屋平台。
+- 永慶、信義、住商、台灣房屋、中信、太平洋、有巢氏等房仲網站的站內或 Google site 搜尋。
+
+頁面會依月租上限、最低房數、屋齡偏好與主要判準重新排序候選房源，並提供：
+
+- 開啟主要搜尋入口。
+- 複製聯絡仲介條件。
+- 複製前 5 筆看屋清單。
+
+這個頁面不宣稱即時爬取各平台資料。多數租屋與房仲網站有登入、反爬蟲或 CORS 限制，因此目前設計成可執行的廣搜入口與推薦排序工作台；看屋前仍需逐筆確認是否仍可租、完整地址、管理費、屋齡、可否報稅/租補與通學時間。
 
 ## 新增比較區域
 

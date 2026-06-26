@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>選定區域租賃廣搜推薦</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23c65f28'/%3E%3Cpath d='M3 8h10v5H3zM5 5h6v3H5z' fill='white'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">光仁小學通學規劃 · 房源廣搜</p>
+        <h1>選定區域租賃資訊推薦</h1>
+        <nav class="page-nav" aria-label="頁面導覽">
+          <a href="index.html">區域比較</a>
+          <a aria-current="page" href="rental-search.html">房源廣搜推薦</a>
+        </nav>
+      </div>
+      <div class="header-meta" aria-label="固定規劃條件">
+        <span>目標：2房以上整層住家</span>
+        <span>決策前：逐筆確認地址與可租狀態</span>
+      </div>
+    </header>
+
+    <main class="layout rental-layout">
+      <aside class="controls" aria-label="租賃搜尋設定">
+        <section class="panel">
+          <div class="section-heading">
+            <h2>選定區域</h2>
+          </div>
+          <label class="field">
+            <span>候選生活圈</span>
+            <select id="areaSelect"></select>
+          </label>
+          <p id="areaScope" class="form-status" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading">
+            <h2>篩選條件</h2>
+          </div>
+          <label class="field">
+            <span>月租上限</span>
+            <select id="searchRentLimit">
+              <option value="40000">NT$40k</option>
+              <option value="50000" selected>NT$50k</option>
+              <option value="60000">NT$60k</option>
+              <option value="70000">NT$70k</option>
+              <option value="90000">NT$90k</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>最低房數</span>
+            <select id="roomLimit">
+              <option value="1">1房以上</option>
+              <option value="2" selected>2房以上</option>
+              <option value="3">3房以上</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>屋齡偏好</span>
+            <select id="agePreference">
+              <option value="any" selected>不限，先看適配</option>
+              <option value="30">30年內優先</option>
+              <option value="20">20年內優先</option>
+              <option value="10">10年內優先</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>主要判準</span>
+            <select id="listingPriority">
+              <option value="balanced" selected>家庭通學均衡</option>
+              <option value="commute">近校與接送優先</option>
+              <option value="space">房數與坪數優先</option>
+              <option value="newer">屋況與電梯優先</option>
+              <option value="budget">租金壓力優先</option>
+            </select>
+          </label>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading">
+            <h2>搜尋動作</h2>
+          </div>
+          <button id="openPrimarySearches" class="primary-button full-button" type="button">開啟主要搜尋入口</button>
+          <button id="copySearchBrief" class="text-button full-button" type="button">複製聯絡仲介條件</button>
+          <p class="form-status">會開啟 591、樂屋、房價網等既有入口；其他房仲網站以站內或 Google site 搜尋補齊。</p>
+        </section>
+      </aside>
+
+      <section class="workspace" aria-label="房源推薦與搜尋入口">
+        <section class="recommendation-panel rental-summary" aria-label="區域搜尋摘要">
+          <div>
+            <span class="metric-label">目前區域</span>
+            <strong id="selectedAreaName">-</strong>
+          </div>
+          <div>
+            <span class="metric-label">優先策略</span>
+            <p id="searchStrategy">-</p>
+          </div>
+          <div>
+            <span class="metric-label">資料限制</span>
+            <p>房源會快速下架或改價，頁面提供廣搜入口與初步排序；看屋前仍要逐筆確認完整地址、管理費、屋齡、可否報稅/租補與兒童生活風險。</p>
+          </div>
+        </section>
+
+        <section class="compare-section source-section">
+          <div class="section-heading">
+            <h2>廣搜來源</h2>
+            <span id="sourceCount" class="hint">載入中</span>
+          </div>
+          <div id="sourceGroups" class="source-groups"></div>
+        </section>
+
+        <section class="compare-section">
+          <div class="section-heading">
+            <div>
+              <h2>推薦追蹤清單</h2>
+              <p id="listingCount" class="hint">載入中</p>
+            </div>
+            <button id="copyShortlist" class="primary-button" type="button">複製看屋清單</button>
+          </div>
+          <div id="listingCards" class="listing-cards" aria-live="polite"></div>
+        </section>
+      </section>
+    </main>
+
+    <template id="sourceGroupTemplate">
+      <article class="source-group">
+        <h3></h3>
+        <div class="source-links"></div>
+      </article>
+    </template>
+
+    <template id="listingTemplate">
+      <article class="listing-card">
+        <div class="listing-head">
+          <div>
+            <h3></h3>
+            <p class="option-meta"></p>
+          </div>
+          <span class="score-badge"></span>
+        </div>
+        <dl class="metrics listing-metrics"></dl>
+        <p class="recommendation-text listing-reason"></p>
+        <div class="tag-list"></div>
+        <details>
+          <summary>風險與下一步</summary>
+          <div class="detail-grid"></div>
+        </details>
+        <a class="primary-button listing-link" target="_blank" rel="noopener noreferrer">開啟房源或搜尋</a>
+      </article>
+    </template>
+
+    <script src="data/rental-choices.js?v=20260626-search"></script>
+    <script src="rental-search.js?v=20260626-search"></script>
+  </body>
+</html>
