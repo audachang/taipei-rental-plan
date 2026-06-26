@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>台北第二居住點互動比較</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">光仁小學通學規劃 · 2026/08</p>
+        <h1>第二居住點互動比較</h1>
+      </div>
+      <div class="header-meta" aria-label="固定規劃條件">
+        <span>目的地：臺北市萬華區萬大路423巷15號</span>
+        <span>家庭：三人</span>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="controls" aria-label="比較設定">
+        <section class="panel">
+          <div class="section-heading">
+            <h2>篩選</h2>
+            <button class="text-button" id="resetFilters" type="button">重設</button>
+          </div>
+
+          <label class="field">
+            <span>月租上限</span>
+            <select id="rentLimit">
+              <option value="70000">NT$70k</option>
+              <option value="60000">NT$60k</option>
+              <option value="50000" selected>NT$50k</option>
+              <option value="45000">NT$45k</option>
+              <option value="40000">NT$40k</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>到校時間上限</span>
+            <select id="commuteLimit">
+              <option value="50">50 分</option>
+              <option value="40" selected>40 分</option>
+              <option value="30">30 分</option>
+              <option value="20">20 分</option>
+            </select>
+          </label>
+
+          <label class="check-row">
+            <input id="directOnly" type="checkbox">
+            <span>只看免轉乘或短程接送</span>
+          </label>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading">
+            <h2>權重</h2>
+            <output id="weightTotal">100%</output>
+          </div>
+
+          <label class="slider-field">
+            <span>通學穩定</span>
+            <input class="weight" data-key="commute" type="range" min="0" max="50" value="35">
+            <output>35</output>
+          </label>
+          <label class="slider-field">
+            <span>接送便利</span>
+            <input class="weight" data-key="pickup" type="range" min="0" max="50" value="20">
+            <output>20</output>
+          </label>
+          <label class="slider-field">
+            <span>租金壓力</span>
+            <input class="weight" data-key="rent" type="range" min="0" max="50" value="15">
+            <output>15</output>
+          </label>
+          <label class="slider-field">
+            <span>中壢往返</span>
+            <input class="weight" data-key="zhongli" type="range" min="0" max="50" value="10">
+            <output>10</output>
+          </label>
+          <label class="slider-field">
+            <span>備援能力</span>
+            <input class="weight" data-key="backup" type="range" min="0" max="50" value="10">
+            <output>10</output>
+          </label>
+          <label class="slider-field">
+            <span>生活品質</span>
+            <input class="weight" data-key="livability" type="range" min="0" max="50" value="10">
+            <output>10</output>
+          </label>
+        </section>
+
+        <section class="panel">
+          <h2>排序</h2>
+          <div class="segmented" role="group" aria-label="排序方式">
+            <button class="segment active" data-sort="score" type="button">總分</button>
+            <button class="segment" data-sort="commute" type="button">通學</button>
+            <button class="segment" data-sort="rent" type="button">租金</button>
+          </div>
+        </section>
+      </aside>
+
+      <section class="workspace" aria-label="候選居住點比較">
+        <div class="toolbar">
+          <div>
+            <h2>候選方案</h2>
+            <p id="resultCount">載入中</p>
+          </div>
+          <button id="copySummary" class="primary-button" type="button">複製摘要</button>
+        </div>
+
+        <section class="summary-strip" aria-label="目前最佳方案">
+          <div>
+            <span class="metric-label">目前最高分</span>
+            <strong id="bestName">-</strong>
+          </div>
+          <div>
+            <span class="metric-label">到校估計</span>
+            <strong id="bestCommute">-</strong>
+          </div>
+          <div>
+            <span class="metric-label">月租估計</span>
+            <strong id="bestRent">-</strong>
+          </div>
+        </section>
+
+        <section class="data-panel" aria-label="資料採集狀態">
+          <div class="section-heading">
+            <div>
+              <h2>資料採集</h2>
+              <p id="dataScope">載入中</p>
+            </div>
+            <span id="dataUpdated" class="status-pill">-</span>
+          </div>
+
+          <div id="sourceList" class="source-list"></div>
+
+          <div class="table-wrap compact-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>區域</th>
+                  <th>樣本</th>
+                  <th>租金中位</th>
+                  <th>範圍</th>
+                  <th>備註</th>
+                </tr>
+              </thead>
+              <tbody id="rentBenchmarks"></tbody>
+            </table>
+          </div>
+
+          <div class="queue-block">
+            <h3>下一批資料</h3>
+            <ul id="collectionQueue"></ul>
+          </div>
+        </section>
+
+        <div id="cards" class="cards" aria-live="polite"></div>
+
+        <section class="compare-section">
+          <div class="section-heading">
+            <h2>並排比較</h2>
+            <span class="hint">勾選候選方案後會出現在表格中</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead id="compareHead"></thead>
+              <tbody id="compareBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <template id="cardTemplate">
+      <article class="option-card">
+        <div class="card-top">
+          <label class="select-option">
+            <input type="checkbox">
+            <span></span>
+          </label>
+          <span class="score-badge"></span>
+        </div>
+        <div class="option-meta"></div>
+        <div class="route-visual" aria-hidden="true">
+          <span class="node home"></span>
+          <span class="line"></span>
+          <span class="node transit"></span>
+          <span class="line"></span>
+          <span class="node school"></span>
+        </div>
+        <dl class="metrics"></dl>
+        <div class="tag-list"></div>
+        <details>
+          <summary>風險與現場勘查</summary>
+          <div class="detail-grid"></div>
+        </details>
+      </article>
+    </template>
+
+    <script src="data/evidence.js"></script>
+    <script src="data/options.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
