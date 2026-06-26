@@ -58,7 +58,10 @@
     rentalScope: document.querySelector("#rentalScope"),
     rentalUpdated: document.querySelector("#rentalUpdated"),
     rentalChoices: document.querySelector("#rentalChoices"),
-    rentalSearchLinks: document.querySelector("#rentalSearchLinks")
+    rentalSearchLinks: document.querySelector("#rentalSearchLinks"),
+    rentalPreviewScope: document.querySelector("#rentalPreviewScope"),
+    rentalPreviewList: document.querySelector("#rentalPreviewList"),
+    showRentalDetails: document.querySelector("#showRentalDetails")
   };
 
   function clamp(value, min, max) {
@@ -319,6 +322,24 @@
     return link;
   }
 
+  function renderRentalPreview() {
+    elements.rentalPreviewScope.textContent = `${rentalChoices.bestOptionName} · 前 3 筆可追蹤租屋線索`;
+    elements.rentalPreviewList.innerHTML = "";
+
+    rentalChoices.choices.slice(0, 3).forEach((choice) => {
+      const row = document.createElement("article");
+      const title = document.createElement("h3");
+      const meta = document.createElement("p");
+      const link = makeExternalLink("開啟房源", choice.url, "primary-link");
+
+      row.className = "rental-preview-row";
+      title.textContent = choice.title;
+      meta.textContent = `${choice.rentLabel} · ${choice.layout} · ${choice.size} · ${choice.location}`;
+      row.append(title, meta, link);
+      elements.rentalPreviewList.append(row);
+    });
+  }
+
   function renderRentalChoices() {
     elements.rentalCandidateName.textContent = `${rentalChoices.bestOptionName}租賃選擇`;
     elements.rentalScope.textContent = rentalChoices.scope;
@@ -457,6 +478,7 @@
     renderSources();
     renderRentBenchmarks();
     renderCollectionQueue();
+    renderRentalPreview();
     renderRentalChoices();
   }
 
@@ -505,6 +527,11 @@
 
   elements.tabs.forEach((tab) => {
     tab.addEventListener("click", () => activateTab(tab.dataset.tab));
+  });
+
+  elements.showRentalDetails.addEventListener("click", () => {
+    activateTab("rentals");
+    document.querySelector("#panel-rentals").scrollIntoView({ block: "start", behavior: "smooth" });
   });
 
   elements.copySummary.addEventListener("click", copySummary);

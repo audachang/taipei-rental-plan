@@ -100,6 +100,7 @@ h2 {
 .option-card,
 .compare-section,
 .summary-strip,
+.rental-preview-panel,
 .data-panel,
 .rental-panel {
   border: 1px solid var(--border);
@@ -207,6 +208,12 @@ input[type="range"] {
   padding: 0.25rem 0.5rem;
   background: transparent;
   color: var(--blue);
+}
+
+.text-button.strong {
+  border-color: var(--border);
+  background: var(--surface);
+  font-weight: 800;
 }
 
 .primary-button {
@@ -341,6 +348,43 @@ input[type="range"] {
   padding-left: 1.125rem;
   color: var(--muted);
   font-size: 0.875rem;
+}
+
+.rental-preview-panel {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.rental-preview-panel p {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.rental-preview-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.rental-preview-row {
+  display: grid;
+  gap: 0.375rem;
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fafbfc;
+}
+
+.rental-preview-row h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.rental-preview-row p {
+  margin: 0;
 }
 
 .rental-panel {
@@ -715,6 +759,7 @@ th:first-child {
   .cards,
   .summary-strip,
   .source-list,
+  .rental-preview-list,
   .rental-metrics,
   .rental-detail-grid {
     grid-template-columns: 1fr;
