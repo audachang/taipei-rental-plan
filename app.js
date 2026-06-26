@@ -7,6 +7,13 @@
     rentBenchmarks: [],
     collectionQueue: []
   };
+  const rentalChoices = window.BEST_RENTAL_CHOICES || {
+    updatedAt: "",
+    bestOptionName: "最佳方案",
+    scope: "尚未載入租賃選擇。",
+    choices: [],
+    links: []
+  };
   const state = {
     selected: new Set(options.slice(0, 3).map((option) => option.id)),
     sort: "score",
@@ -44,7 +51,14 @@
     dataUpdated: document.querySelector("#dataUpdated"),
     sourceList: document.querySelector("#sourceList"),
     rentBenchmarks: document.querySelector("#rentBenchmarks"),
-    collectionQueue: document.querySelector("#collectionQueue")
+    collectionQueue: document.querySelector("#collectionQueue"),
+    tabs: document.querySelectorAll(".workspace-tab"),
+    tabPanels: document.querySelectorAll(".tab-panel"),
+    rentalCandidateName: document.querySelector("#rentalCandidateName"),
+    rentalScope: document.querySelector("#rentalScope"),
+    rentalUpdated: document.querySelector("#rentalUpdated"),
+    rentalChoices: document.querySelector("#rentalChoices"),
+    rentalSearchLinks: document.querySelector("#rentalSearchLinks")
   };
 
   function clamp(value, min, max) {
@@ -295,6 +309,102 @@
     });
   }
 
+  function makeExternalLink(label, url, className) {
+    const link = document.createElement("a");
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noreferrer";
+    link.textContent = label;
+    if (className) link.className = className;
+    return link;
+  }
+
+  function renderRentalChoices() {
+    elements.rentalCandidateName.textContent = `${rentalChoices.bestOptionName}租賃選擇`;
+    elements.rentalScope.textContent = rentalChoices.scope;
+    elements.rentalUpdated.textContent = `更新 ${rentalChoices.updatedAt || "-"}`;
+    elements.rentalChoices.innerHTML = "";
+    elements.rentalSearchLinks.innerHTML = "";
+
+    if (rentalChoices.choices.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "目前沒有租賃選擇資料。";
+      elements.rentalChoices.append(empty);
+      return;
+    }
+
+    rentalChoices.choices.forEach((choice) => {
+      const card = document.createElement("article");
+      const top = document.createElement("div");
+      const titleWrap = document.createElement("div");
+      const title = document.createElement("h3");
+      const meta = document.createElement("p");
+      const fit = document.createElement("span");
+      const metrics = document.createElement("dl");
+      const detail = document.createElement("div");
+      const action = document.createElement("p");
+
+      card.className = "rental-card";
+      top.className = "rental-card-top";
+      fit.className = "fit-badge";
+      metrics.className = "rental-metrics";
+      detail.className = "rental-detail-grid";
+      action.className = "next-action";
+
+      title.textContent = choice.title;
+      meta.textContent = `${choice.sourceName} · ${choice.location}`;
+      fit.textContent = `家庭適配 ${choice.familyFit}`;
+      titleWrap.append(title, meta);
+      top.append(titleWrap, fit);
+
+      [
+        ["月租", choice.rentLabel],
+        ["格局", choice.layout],
+        ["坪數", choice.size],
+        ["樓層", choice.floor],
+        ["距離", choice.distanceLabel],
+        ["通學判斷", choice.commuteFit]
+      ].forEach(([label, value]) => {
+        metrics.append(metric(label, value));
+      });
+
+      detail.append(
+        listBlock("優點", choice.highlights),
+        listBlock("風險", choice.risks)
+      );
+
+      action.textContent = choice.nextAction;
+
+      card.append(
+        top,
+        metrics,
+        detail,
+        action,
+        makeExternalLink("開啟房源", choice.url, "primary-link")
+      );
+      elements.rentalChoices.append(card);
+    });
+
+    rentalChoices.links.forEach((item) => {
+      elements.rentalSearchLinks.append(makeExternalLink(item.label, item.url, "source-link"));
+    });
+  }
+
+  function activateTab(tabName) {
+    elements.tabs.forEach((tab) => {
+      const isActive = tab.dataset.tab === tabName;
+      tab.classList.toggle("active", isActive);
+      tab.setAttribute("aria-selected", `${isActive}`);
+    });
+
+    elements.tabPanels.forEach((panel) => {
+      const isActive = panel.id === `panel-${tabName}`;
+      panel.classList.toggle("active", isActive);
+      panel.hidden = !isActive;
+    });
+  }
+
   function updateWeightLabels() {
     const total = Object.values(state.weights).reduce((sum, value) => sum + value, 0);
     elements.weightTotal.textContent = `${total}%`;
@@ -347,6 +457,7 @@
     renderSources();
     renderRentBenchmarks();
     renderCollectionQueue();
+    renderRentalChoices();
   }
 
   elements.rentLimit.addEventListener("change", (event) => {
@@ -390,6 +501,10 @@
       state.sort = button.dataset.sort;
       render();
     });
+  });
+
+  elements.tabs.forEach((tab) => {
+    tab.addEventListener("click", () => activateTab(tab.dataset.tab));
   });
 
   elements.copySummary.addEventListener("click", copySummary);

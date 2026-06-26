@@ -9,6 +9,7 @@
 - `app.js`: 篩選、排序、權重計分、比較表與摘要產生邏輯。
 - `data/options.js`: 候選居住點資料。現在是示範資料，後續應替換為實查房源與交通紀錄。
 - `data/evidence.js`: 第一批資料來源、租金摘要與下一步採集清單。
+- `data/rental-choices.js`: 目前最佳方案下的租賃選擇、看屋重點與外部連結。
 
 ## 線上部署
 
@@ -48,6 +49,8 @@ C:\Users\audachang\Dropbox\09_AI-testing-sites\Codex\taipei-rental-plan\index.ht
 ## 資料品質規則
 
 不要把估計值和實測值混在一起。實測後請在 `evidence` 裡標示日期、時段、資料來源與是否為雨天/尖峰。
+
+租屋平台連結是即時市場線索，不是穩定資料。每次看屋或決策前都要重新點開 `data/rental-choices.js` 裡的連結，確認房源仍存在、價格未變、地址可核對。
 
 ## 目前資料來源
 
