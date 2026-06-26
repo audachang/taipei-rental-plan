@@ -1,138 +1,352 @@
 (function () {
-  const options = window.RENTAL_OPTIONS || [];
-  const evidence = window.DATA_EVIDENCE || {
-    updatedAt: "",
-    scope: "尚未載入資料來源。",
-    sources: [],
-    rentBenchmarks: [],
-    collectionQueue: []
-  };
-  const rentalChoices = window.BEST_RENTAL_CHOICES || {
-    updatedAt: "",
-    bestOptionName: "最佳方案",
-    scope: "尚未載入租賃選擇。",
-    choices: [],
-    links: []
-  };
-  const rentalCatalog = window.RENTAL_CHOICES_BY_OPTION || {
-    updatedAt: rentalChoices.updatedAt,
-    scope: rentalChoices.scope,
-    options: {
-      [rentalChoices.bestOptionId || "wanhua-longshan"]: {
-        optionName: rentalChoices.bestOptionName,
-        choices: rentalChoices.choices,
-        links: rentalChoices.links
+  const baseOptions = (window.RENTAL_OPTIONS || []).map((option) => ({
+    ...option,
+    sourceType: "已整理候選",
+    recommendation: option.strengths[0] || "可納入比較",
+    caution: option.risks[0] || "需以實際地址驗證"
+  }));
+
+  const evidence = window.DATA_EVIDENCE || { rentBenchmarks: [] };
+
+  const regionPresets = [
+    {
+      aliases: ["萬華", "萬華區", "龍山寺", "西園", "萬大路", "萬華車站"],
+      option: {
+        name: "萬華近校生活圈",
+        district: "萬華區",
+        type: "近校優先",
+        rent: 40000,
+        rentLabel: "NT$30k-50k",
+        commuteMinutes: 14,
+        commuteRange: "10-22 分",
+        walkMinutes: 8,
+        transfers: 0,
+        pickupScore: 5,
+        zhongliScore: 3,
+        backupScore: 5,
+        livabilityScore: 3,
+        quietScore: 2,
+        route: "步行、公車或短程計程車到光仁小學",
+        transit: "公車、步行、計程車",
+        strengths: ["通學最穩", "臨時接送成本低", "接送反應時間短"],
+        risks: ["街廓品質差異大", "部分路段噪音與車流較高"],
+        checks: ["早上 7:10 實走到校", "晚上確認街廓照明", "比較校門周邊臨停壓力"],
+        recommendation: "若核心目標是降低每日通學變數，這類區域通常最有利。",
+        caution: "要用實際巷弄排除噪音、潮濕與夜間安全落差。"
+      }
+    },
+    {
+      aliases: ["中正", "中正區", "西門", "小南門", "北門", "台北車站", "臺北車站"],
+      option: {
+        name: "中正西側 / 西門小南門",
+        district: "中正區 / 萬華邊界",
+        type: "都心折衷",
+        rent: 54000,
+        rentLabel: "NT$45k-70k",
+        commuteMinutes: 22,
+        commuteRange: "15-32 分",
+        walkMinutes: 8,
+        transfers: 0,
+        pickupScore: 4,
+        zhongliScore: 4,
+        backupScore: 5,
+        livabilityScore: 4,
+        quietScore: 3,
+        route: "短程計程車、公車或捷運銜接",
+        transit: "捷運、公車、計程車",
+        strengths: ["交通選項多", "往台北車站與中壢轉接方便", "生活機能完整"],
+        risks: ["租金較高", "商圈人流與噪音需避開"],
+        checks: ["夜間走一次住宅周邊", "確認住宅用途不是商辦混用", "估算固定計程車備援成本"],
+        recommendation: "適合需要兼顧通學、台北車站轉接與都心機能的折衷方案。",
+        caution: "租金和環境安靜度要逐棟看，不能只看捷運站名。"
+      }
+    },
+    {
+      aliases: ["古亭", "南門", "大安", "大安區", "東門", "師大"],
+      option: {
+        name: "古亭 / 南門 / 大安邊界",
+        district: "中正區 / 大安區",
+        type: "生活品質優先",
+        rent: 60000,
+        rentLabel: "NT$50k-85k",
+        commuteMinutes: 32,
+        commuteRange: "24-45 分",
+        walkMinutes: 10,
+        transfers: 1,
+        pickupScore: 3,
+        zhongliScore: 4,
+        backupScore: 4,
+        livabilityScore: 5,
+        quietScore: 4,
+        route: "捷運、公車或計程車到萬華",
+        transit: "捷運、公車",
+        strengths: ["生活品質穩", "教育與日常資源好", "住宅街廓相對成熟"],
+        risks: ["到校時間比近校不穩", "同預算坪數可能縮小"],
+        checks: ["實測 7:00 到校", "比較同租金坪數", "確認放學回程是否遇尖峰壅塞"],
+        recommendation: "適合把日常生活品質放得比通學最短更高的方案。",
+        caution: "需確認早尖峰和放學回程，不宜只用平日離峰時間估算。"
+      }
+    },
+    {
+      aliases: ["板橋", "府中", "新埔", "板橋車站", "江子翠"],
+      option: {
+        name: "板橋府中 / 新埔",
+        district: "新北市板橋區",
+        type: "空間預算折衷",
+        rent: 43000,
+        rentLabel: "NT$35k-55k",
+        commuteMinutes: 38,
+        commuteRange: "30-50 分",
+        walkMinutes: 11,
+        transfers: 1,
+        pickupScore: 2,
+        zhongliScore: 4,
+        backupScore: 3,
+        livabilityScore: 4,
+        quietScore: 3,
+        route: "板南線轉公車/步行或計程車",
+        transit: "捷運、公車、台鐵",
+        strengths: ["同預算空間可能較好", "跨城交通強", "生活機能完整"],
+        risks: ["接送反應時間較長", "雨天與臨時狀況成本較高"],
+        checks: ["早尖峰實測到校", "確認步行到捷運站時間", "比較計程車備援成本"],
+        recommendation: "適合用較好的空間與跨城交通，交換較長的接送反應時間。",
+        caution: "只保留能穩定 45 分內到校的精確地址。"
+      }
+    },
+    {
+      aliases: ["永和", "中和", "頂溪", "永安市場", "景安"],
+      option: {
+        name: "頂溪 / 永安市場 / 中和",
+        district: "新北市永和區 / 中和區",
+        type: "生活機能折衷",
+        rent: 45000,
+        rentLabel: "NT$34k-58k",
+        commuteMinutes: 36,
+        commuteRange: "28-50 分",
+        walkMinutes: 10,
+        transfers: 1,
+        pickupScore: 2,
+        zhongliScore: 3,
+        backupScore: 3,
+        livabilityScore: 5,
+        quietScore: 3,
+        route: "中和新蘆線轉乘、公車或過河計程車",
+        transit: "捷運、公車、計程車",
+        strengths: ["採買便利", "租屋供給多", "生活機能密集"],
+        risks: ["過河尖峰變異大", "臨時接送不如台北端"],
+        checks: ["測雨天計程車等待", "早尖峰過河實測", "確認巷弄停車與接送點"],
+        recommendation: "適合重視生活機能與租金彈性，但願意承擔過河時間變異的情境。",
+        caution: "過河路線必須用雨天與尖峰情境驗證。"
+      }
+    },
+    {
+      aliases: ["信義", "信義區", "市政府", "永春", "象山"],
+      option: {
+        name: "信義 / 市政府生活圈",
+        district: "臺北市信義區",
+        type: "都心機能高租金",
+        rent: 65000,
+        rentLabel: "NT$55k-95k",
+        commuteMinutes: 42,
+        commuteRange: "35-55 分",
+        walkMinutes: 9,
+        transfers: 1,
+        pickupScore: 2,
+        zhongliScore: 3,
+        backupScore: 4,
+        livabilityScore: 5,
+        quietScore: 3,
+        route: "捷運板南線/公車銜接萬華",
+        transit: "捷運、公車、計程車",
+        strengths: ["生活與工作機能強", "新屋齡供給較多", "交通備援多"],
+        risks: ["租金壓力高", "到校距離偏長", "商圈噪音需篩街廓"],
+        checks: ["確認早尖峰車程", "比較租金與坪數", "避開大型商圈噪音街廓"],
+        recommendation: "除非工作或生活重心明確在信義，否則通學與租金通常不如西側方案。",
+        caution: "需避免用高租金買到較長且不穩的通學時間。"
+      }
+    },
+    {
+      aliases: ["松山", "松山區", "南京復興", "小巨蛋", "民生社區"],
+      option: {
+        name: "松山 / 南京復興 / 民生社區",
+        district: "臺北市松山區",
+        type: "生活品質高但距離較遠",
+        rent: 58000,
+        rentLabel: "NT$48k-80k",
+        commuteMinutes: 43,
+        commuteRange: "34-58 分",
+        walkMinutes: 10,
+        transfers: 1,
+        pickupScore: 2,
+        zhongliScore: 3,
+        backupScore: 4,
+        livabilityScore: 5,
+        quietScore: 4,
+        route: "捷運或公車跨市中心到萬華",
+        transit: "捷運、公車、計程車",
+        strengths: ["住宅環境成熟", "生活品質好", "家庭日常資源多"],
+        risks: ["通學距離偏長", "租金不低", "尖峰穿越市中心時間變異"],
+        checks: ["早上 7:00 實測", "比較雨天車程", "確認離捷運站步行距離"],
+        recommendation: "適合強烈偏好安定住宅環境，但需要接受較弱的通學效率。",
+        caution: "若到校穩定性是核心，松山通常需要很強的房源優勢才值得保留。"
+      }
+    },
+    {
+      aliases: ["士林", "北投", "天母", "石牌", "芝山"],
+      option: {
+        name: "士林 / 北投 / 天母",
+        district: "臺北市士林區 / 北投區",
+        type: "環境品質優先",
+        rent: 56000,
+        rentLabel: "NT$45k-85k",
+        commuteMinutes: 55,
+        commuteRange: "45-70 分",
+        walkMinutes: 12,
+        transfers: 1,
+        pickupScore: 1,
+        zhongliScore: 2,
+        backupScore: 3,
+        livabilityScore: 5,
+        quietScore: 5,
+        route: "捷運淡水信義線轉乘或車行",
+        transit: "捷運、公車、計程車",
+        strengths: ["環境與空間感較好", "家庭生活品質高", "安靜街廓較多"],
+        risks: ["到校時間長", "臨時接送反應慢", "跨城往返不利"],
+        checks: ["只保留特殊理由房源", "測尖峰到校", "估算長期接送疲勞"],
+        recommendation: "除非家庭生活重心在北側，否則作為光仁通學第二居住點的效率偏弱。",
+        caution: "需把每日通學負擔量化，避免被環境品質單點吸引。"
       }
     }
+  ];
+
+  const defaultRegion = {
+    district: "待判定",
+    type: "初估區域",
+    rent: 52000,
+    rentLabel: "NT$45k-65k",
+    commuteMinutes: 42,
+    commuteRange: "35-55 分",
+    walkMinutes: 10,
+    transfers: 1,
+    pickupScore: 2,
+    zhongliScore: 3,
+    backupScore: 3,
+    livabilityScore: 3,
+    quietScore: 3,
+    route: "需以實際地址查 Google Maps 與尖峰時間",
+    transit: "待查",
+    strengths: ["可先納入比較", "需要用實際地址校正"],
+    risks: ["目前只有名稱推估", "租金與通學時間可能偏差大"],
+    checks: ["取得候選房源門牌", "重算早尖峰到校時間", "確認租金、屋齡與生活機能"],
+    recommendation: "這是初估卡，適合先放入比較清單，後續要用實際地址替換。",
+    caution: "未有精確房源或交通實測前，不應作為最終決策。"
   };
+
+  const priorityWeights = {
+    balanced: { commute: 32, pickup: 18, rent: 18, zhongli: 10, backup: 12, livability: 10 },
+    commute: { commute: 45, pickup: 25, rent: 10, zhongli: 5, backup: 10, livability: 5 },
+    rent: { commute: 24, pickup: 12, rent: 34, zhongli: 8, backup: 10, livability: 12 },
+    livability: { commute: 22, pickup: 10, rent: 12, zhongli: 8, backup: 13, livability: 35 },
+    zhongli: { commute: 25, pickup: 12, rent: 12, zhongli: 31, backup: 10, livability: 10 }
+  };
+
   const state = {
-    selected: new Set(options.slice(0, 3).map((option) => option.id)),
+    optionPool: [...baseOptions],
+    selected: new Set(baseOptions.slice(0, 3).map((option) => option.id)),
     sort: "score",
+    priority: "balanced",
     filters: {
-      rentLimit: 50000,
-      commuteLimit: 40,
-      buildingAgeLimit: 999,
-      petFriendlyOnly: false,
-      directOnly: false
-    },
-    mapHiddenChoices: new Set(),
-    weights: {
-      commute: 35,
-      pickup: 20,
-      rent: 15,
-      zhongli: 10,
-      backup: 10,
-      livability: 10
+      rentLimit: 60000,
+      commuteLimit: 45
     }
   };
 
   const elements = {
+    addRegionForm: document.querySelector("#addRegionForm"),
+    regionInput: document.querySelector("#regionInput"),
+    regionSuggestions: document.querySelector("#regionSuggestions"),
+    addRegionStatus: document.querySelector("#addRegionStatus"),
+    selectedRegions: document.querySelector("#selectedRegions"),
+    resetRegions: document.querySelector("#resetRegions"),
+    priority: document.querySelector("#priority"),
     rentLimit: document.querySelector("#rentLimit"),
     commuteLimit: document.querySelector("#commuteLimit"),
-    buildingAgeLimit: document.querySelector("#buildingAgeLimit"),
-    petFriendlyOnly: document.querySelector("#petFriendlyOnly"),
-    directOnly: document.querySelector("#directOnly"),
-    resetFilters: document.querySelector("#resetFilters"),
     cards: document.querySelector("#cards"),
     template: document.querySelector("#cardTemplate"),
     resultCount: document.querySelector("#resultCount"),
     bestName: document.querySelector("#bestName"),
-    bestCommute: document.querySelector("#bestCommute"),
-    bestRent: document.querySelector("#bestRent"),
+    bestReason: document.querySelector("#bestReason"),
+    bestCaution: document.querySelector("#bestCaution"),
     compareHead: document.querySelector("#compareHead"),
     compareBody: document.querySelector("#compareBody"),
-    copySummary: document.querySelector("#copySummary"),
-    weightTotal: document.querySelector("#weightTotal"),
-    dataScope: document.querySelector("#dataScope"),
-    dataUpdated: document.querySelector("#dataUpdated"),
-    sourceList: document.querySelector("#sourceList"),
-    rentBenchmarks: document.querySelector("#rentBenchmarks"),
-    collectionQueue: document.querySelector("#collectionQueue"),
-    tabs: document.querySelectorAll(".workspace-tab"),
-    tabPanels: document.querySelectorAll(".tab-panel"),
-    rentalCandidateName: document.querySelector("#rentalCandidateName"),
-    rentalScope: document.querySelector("#rentalScope"),
-    rentalUpdated: document.querySelector("#rentalUpdated"),
-    rentalChoices: document.querySelector("#rentalChoices"),
-    rentalSearchLinks: document.querySelector("#rentalSearchLinks"),
-    rentalPreviewScope: document.querySelector("#rentalPreviewScope"),
-    rentalPreviewList: document.querySelector("#rentalPreviewList"),
-    showRentalDetails: document.querySelector("#showRentalDetails"),
-    mapScope: document.querySelector("#mapScope"),
-    mapUpdated: document.querySelector("#mapUpdated"),
-    rentalMap: document.querySelector("#rentalMap"),
-    mapRouteList: document.querySelector("#mapRouteList")
+    copySummary: document.querySelector("#copySummary")
   };
 
-  const schoolPoint = {
-    name: "光仁小學",
-    address: "台北市萬華區萬大路423巷15號",
-    lat: 25.0213,
-    lng: 121.5002
-  };
-
-  const rentalMapPoints = {
-    "wanhua-xiyuan-3br": { lat: 25.0264, lng: 121.4990, label: "西園路二段" },
-    "wanhua-juguang-3br": { lat: 25.0320, lng: 121.5024, label: "莒光路生活圈" },
-    "wanhua-nanning-2br": { lat: 25.0360, lng: 121.5038, label: "南寧路生活圈" },
-    "wanhua-newer-elevator": { lat: 25.0260, lng: 121.5015, label: "萬華電梯住宅搜尋" },
-    "wanhua-market-scan": { lat: 25.0248, lng: 121.5008, label: "萬華家庭型掃描" },
-    "ximen-hanzhong-2br": { lat: 25.0434, lng: 121.5072, label: "西門站周邊" },
-    "xiaonanmen-elevator": { lat: 25.0365, lng: 121.5098, label: "小南門站周邊" },
-    "zhongzheng-older-apartment": { lat: 25.0337, lng: 121.5120, label: "中正西側公寓" },
-    "ximen-newer-studio-not-main": { lat: 25.0453, lng: 121.5100, label: "西門新屋齡搜尋" },
-    "ximen-market-scan": { lat: 25.0406, lng: 121.5088, label: "西門/小南門掃描" },
-    "guting-elevator-2br": { lat: 25.0263, lng: 121.5225, label: "古亭站周邊" },
-    "nanmen-3br-family": { lat: 25.0328, lng: 121.5130, label: "南門市場生活圈" },
-    "daan-guting-newer": { lat: 25.0253, lng: 121.5260, label: "大安/古亭新屋齡搜尋" },
-    "guting-older-budget": { lat: 25.0293, lng: 121.5170, label: "古亭老公寓搜尋" },
-    "guting-market-scan": { lat: 25.0280, lng: 121.5202, label: "古亭/南門掃描" },
-    "banqiao-fuzhong-3br": { lat: 25.0084, lng: 121.4590, label: "府中站周邊" },
-    "banqiao-xinpu-elevator": { lat: 25.0237, lng: 121.4688, label: "新埔站周邊" },
-    "banqiao-station-family": { lat: 25.0144, lng: 121.4640, label: "板橋車站周邊" },
-    "banqiao-older-budget": { lat: 25.0103, lng: 121.4562, label: "府中老公寓搜尋" },
-    "banqiao-market-scan": { lat: 25.0160, lng: 121.4645, label: "板橋家庭型掃描" },
-    "dingxi-2br-elevator": { lat: 25.0136, lng: 121.5154, label: "頂溪站周邊" },
-    "yongan-family-3br": { lat: 25.0024, lng: 121.5117, label: "永安市場周邊" },
-    "zhonghe-newer-2br": { lat: 24.9934, lng: 121.5062, label: "中和新屋齡搜尋" },
-    "yonghe-older-budget": { lat: 25.0100, lng: 121.5133, label: "永和老公寓搜尋" },
-    "dingxi-yongan-market-scan": { lat: 25.0056, lng: 121.5112, label: "頂溪/永安市場掃描" }
-  };
-
-  const mapState = {
-    map: null,
-    layers: null
-  };
+  function slugify(text) {
+    return text
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^\w\u4e00-\u9fff-]/g, "");
+  }
 
   function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
   }
 
+  function makeOptionId(name) {
+    return `custom-${slugify(name) || Date.now()}`;
+  }
+
+  function getRentBenchmark(option) {
+    return evidence.rentBenchmarks?.find((benchmark) => {
+      return option.district.includes(benchmark.area) || option.name.includes(benchmark.area);
+    });
+  }
+
+  function createOptionFromPreset(input, preset) {
+    const id = makeOptionId(input);
+    return {
+      ...preset.option,
+      id,
+      name: preset.option.name,
+      sourceType: "名稱推估",
+      evidence: `由「${input}」對應到生活圈模板；需用實際地址校正。`
+    };
+  }
+
+  function createDefaultOption(input) {
+    return {
+      ...defaultRegion,
+      id: makeOptionId(input),
+      name: input,
+      sourceType: "初估",
+      evidence: `由使用者輸入「${input}」建立；尚未連結實價與交通資料。`
+    };
+  }
+
+  function findExistingOption(input) {
+    const normalized = input.trim().toLowerCase();
+    return state.optionPool.find((option) => {
+      return option.name.toLowerCase() === normalized || option.district.toLowerCase() === normalized;
+    });
+  }
+
+  function inferOption(input) {
+    const trimmed = input.trim();
+    const existing = findExistingOption(trimmed);
+    if (existing) return existing;
+
+    const preset = regionPresets.find((item) => item.aliases.some((alias) => trimmed.includes(alias) || alias.includes(trimmed)));
+    if (preset) return createOptionFromPreset(trimmed, preset);
+    return createDefaultOption(trimmed);
+  }
+
   function scoreOption(option) {
-    const weights = state.weights;
+    const weights = priorityWeights[state.priority] || priorityWeights.balanced;
     const totalWeight = Object.values(weights).reduce((sum, value) => sum + value, 0) || 1;
-    const commuteScore = clamp(5 - (option.commuteMinutes - 10) / 8, 1, 5);
-    const rentScore = clamp(5 - (option.rent - 35000) / 8000, 1, 5);
+    const commuteScore = clamp(5 - (option.commuteMinutes - 10) / 9, 1, 5);
+    const rentScore = clamp(5 - (option.rent - 32000) / 9000, 1, 5);
     const weighted =
       commuteScore * weights.commute +
       option.pickupScore * weights.pickup +
@@ -144,12 +358,16 @@
     return Math.round((weighted / totalWeight) * 20);
   }
 
-  function getFilteredOptions() {
-    return options
+  function getSelectedOptions() {
+    return state.optionPool
+      .filter((option) => state.selected.has(option.id))
+      .map((option) => ({ ...option, score: scoreOption(option) }));
+  }
+
+  function getVisibleOptions() {
+    return getSelectedOptions()
       .filter((option) => option.rent <= state.filters.rentLimit)
       .filter((option) => option.commuteMinutes <= state.filters.commuteLimit)
-      .filter((option) => !state.filters.directOnly || option.transfers === 0)
-      .map((option) => ({ ...option, score: scoreOption(option) }))
       .sort((a, b) => {
         if (state.sort === "commute") return a.commuteMinutes - b.commuteMinutes;
         if (state.sort === "rent") return a.rent - b.rent;
@@ -157,45 +375,13 @@
       });
   }
 
-  function getBestOption(filteredOptions) {
-    if (filteredOptions.length === 0) return null;
-    return filteredOptions.reduce((winner, option) => {
-      return option.score > winner.score ? option : winner;
-    }, filteredOptions[0]);
-  }
-
-  function getRentalGroup(optionId) {
-    return rentalCatalog.options[optionId] || {
-      optionName: "未設定方案",
-      choices: [],
-      links: []
-    };
-  }
-
-  function isPetFriendlyCandidate(choice) {
-    return ["yes", "candidate"].includes(choice.petPolicyStatus);
-  }
-
-  function getFilteredRentalChoices(optionId) {
-    return getRentalGroup(optionId).choices.filter((choice) => {
-      const ageMatch = choice.buildingAgeYears <= state.filters.buildingAgeLimit;
-      const petMatch = !state.filters.petFriendlyOnly || isPetFriendlyCandidate(choice);
-      return ageMatch && petMatch;
-    });
-  }
-
-  function getRentalFilterLabel(prefix) {
-    const ageLabel = state.filters.buildingAgeLimit === 999 ? "屋齡不限" : `${prefix || ""}屋齡 ${state.filters.buildingAgeLimit} 年內`;
-    const petLabel = state.filters.petFriendlyOnly ? "寵物友善候選" : "寵物不限";
-    return `${ageLabel}，${petLabel}`;
+  function getBestOption(options) {
+    if (options.length === 0) return null;
+    return options.reduce((winner, option) => (option.score > winner.score ? option : winner), options[0]);
   }
 
   function formatRent(value) {
     return `NT$${Math.round(value / 1000)}k`;
-  }
-
-  function formatCurrency(value) {
-    return `NT$${Math.round(value).toLocaleString("en-US")}`;
   }
 
   function metric(label, value) {
@@ -210,7 +396,7 @@
 
   function listBlock(title, items) {
     const block = document.createElement("div");
-    const heading = document.createElement("h3");
+    const heading = document.createElement("h4");
     const list = document.createElement("ul");
     heading.textContent = title;
     items.forEach((item) => {
@@ -222,47 +408,110 @@
     return block;
   }
 
-  function renderCards(filteredOptions) {
+  function getRecommendationLabel(option) {
+    if (option.score >= 82) return "優先看屋";
+    if (option.score >= 70) return "保留比較";
+    if (option.score >= 58) return "需特定房源優勢";
+    return "低優先";
+  }
+
+  function renderSuggestions() {
+    const labels = new Set();
+    baseOptions.forEach((option) => {
+      labels.add(option.name);
+      labels.add(option.district);
+    });
+    regionPresets.forEach((preset) => preset.aliases.forEach((alias) => labels.add(alias)));
+    elements.regionSuggestions.innerHTML = "";
+    [...labels].sort((a, b) => a.localeCompare(b, "zh-Hant")).forEach((label) => {
+      const option = document.createElement("option");
+      option.value = label;
+      elements.regionSuggestions.append(option);
+    });
+  }
+
+  function renderSelectedRegions() {
+    const selectedOptions = getSelectedOptions();
+    elements.selectedRegions.innerHTML = "";
+
+    if (selectedOptions.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "muted";
+      empty.textContent = "尚未選擇區域。";
+      elements.selectedRegions.append(empty);
+      return;
+    }
+
+    selectedOptions.forEach((option) => {
+      const chip = document.createElement("button");
+      chip.className = "region-chip";
+      chip.type = "button";
+      chip.textContent = `${option.name} ×`;
+      chip.setAttribute("aria-label", `移除 ${option.name}`);
+      chip.addEventListener("click", () => {
+        state.selected.delete(option.id);
+        render();
+      });
+      elements.selectedRegions.append(chip);
+    });
+  }
+
+  function renderSummary(visibleOptions) {
+    const selectedCount = state.selected.size;
+    const hiddenCount = selectedCount - visibleOptions.length;
+    elements.resultCount.textContent = `${visibleOptions.length} 個區域符合條件${hiddenCount > 0 ? `，${hiddenCount} 個被篩選隱藏` : ""}`;
+
+    const best = getBestOption(visibleOptions);
+    if (!best) {
+      elements.bestName.textContent = "-";
+      elements.bestReason.textContent = "目前沒有符合條件的區域，請放寬租金或通學時間上限。";
+      elements.bestCaution.textContent = "-";
+      return;
+    }
+
+    elements.bestName.textContent = `${best.name} (${best.score} 分，${getRecommendationLabel(best)})`;
+    elements.bestReason.textContent = best.recommendation || best.strengths.join("、");
+    elements.bestCaution.textContent = best.caution || best.risks[0] || "需以實際地址驗證。";
+  }
+
+  function renderCards(visibleOptions) {
     elements.cards.innerHTML = "";
 
-    if (filteredOptions.length === 0) {
+    if (visibleOptions.length === 0) {
       const empty = document.createElement("div");
       empty.className = "empty-state";
-      empty.textContent = "目前沒有符合條件的候選點。請放寬租金、通學時間或轉乘限制。";
+      empty.textContent = "目前沒有符合條件的區域。請新增區域，或放寬月租與到校時間限制。";
       elements.cards.append(empty);
       return;
     }
 
-    filteredOptions.forEach((option) => {
+    visibleOptions.forEach((option) => {
+      const benchmark = getRentBenchmark(option);
       const node = elements.template.content.firstElementChild.cloneNode(true);
-      const checkbox = node.querySelector("input");
-      const title = node.querySelector(".select-option span");
+      const title = node.querySelector("h3");
       const score = node.querySelector(".score-badge");
       const meta = node.querySelector(".option-meta");
       const metrics = node.querySelector(".metrics");
+      const recommendationText = node.querySelector(".recommendation-text");
       const tags = node.querySelector(".tag-list");
       const detailGrid = node.querySelector(".detail-grid");
 
-      checkbox.checked = state.selected.has(option.id);
-      checkbox.setAttribute("aria-label", `選取 ${option.name} 進行比較`);
-      checkbox.addEventListener("change", () => {
-        if (checkbox.checked) state.selected.add(option.id);
-        else state.selected.delete(option.id);
-        render();
-      });
-
       title.textContent = option.name;
       score.textContent = `${option.score}`;
-      meta.textContent = `${option.district} · ${option.type} · ${option.transit}`;
+      meta.textContent = `${option.district} · ${option.type} · ${option.sourceType || "候選區域"}`;
 
       metrics.append(
         metric("到校", option.commuteRange),
         metric("月租", option.rentLabel),
         metric("轉乘", `${option.transfers} 次`),
-        metric("步行", `${option.walkMinutes} 分`)
+        metric("接送", `${option.pickupScore}/5`)
       );
 
-      option.strengths.forEach((strength) => {
+      const rec = document.createElement("p");
+      rec.textContent = `${getRecommendationLabel(option)}：${option.recommendation || option.strengths[0]}`;
+      recommendationText.append(rec);
+
+      [...option.strengths, benchmark ? `${benchmark.area} 實價中位 ${formatRent(benchmark.medianRent)}` : "需補租金樣本"].slice(0, 4).forEach((strength) => {
         const tag = document.createElement("span");
         tag.className = "tag";
         tag.textContent = strength;
@@ -271,39 +520,17 @@
 
       detailGrid.append(
         listBlock("主要風險", option.risks),
-        listBlock("現場勘查", option.checks)
+        listBlock("現場驗證", option.checks)
       );
 
       elements.cards.append(node);
     });
   }
 
-  function renderSummary(filteredOptions) {
-    elements.resultCount.textContent = `${filteredOptions.length} 個候選方案符合目前條件`;
-
-    if (filteredOptions.length === 0) {
-      elements.bestName.textContent = "-";
-      elements.bestCommute.textContent = "-";
-      elements.bestRent.textContent = "-";
-      return;
-    }
-
-    const best = getBestOption(filteredOptions);
-
-    elements.bestName.textContent = `${best.name} (${best.score})`;
-    elements.bestCommute.textContent = best.commuteRange;
-    elements.bestRent.textContent = best.rentLabel;
-  }
-
-  function renderCompareTable() {
-    const selected = options
-      .filter((option) => state.selected.has(option.id))
-      .map((option) => ({ ...option, score: scoreOption(option) }))
-      .sort((a, b) => b.score - a.score);
-
+  function renderCompareTable(visibleOptions) {
     const rows = [
-      ["總分", (option) => option.score],
-      ["行政區", (option) => option.district],
+      ["推薦分數", (option) => `${option.score} (${getRecommendationLabel(option)})`],
+      ["行政區 / 生活圈", (option) => option.district],
       ["定位", (option) => option.type],
       ["月租估計", (option) => option.rentLabel],
       ["到校時間", (option) => option.commuteRange],
@@ -312,7 +539,8 @@
       ["中壢往返", (option) => `${option.zhongliScore}/5`],
       ["備援能力", (option) => `${option.backupScore}/5`],
       ["生活品質", (option) => `${option.livabilityScore}/5`],
-      ["資料狀態", (option) => option.evidence]
+      ["主要風險", (option) => option.risks.join("；")],
+      ["資料狀態", (option) => option.evidence || "候選區域初估，需實測。"]
     ];
 
     elements.compareHead.innerHTML = "";
@@ -322,13 +550,11 @@
     const first = document.createElement("th");
     first.textContent = "項目";
     headRow.append(first);
-
-    selected.forEach((option) => {
+    visibleOptions.forEach((option) => {
       const th = document.createElement("th");
       th.textContent = option.name;
       headRow.append(th);
     });
-
     elements.compareHead.append(headRow);
 
     rows.forEach(([label, getter]) => {
@@ -336,7 +562,7 @@
       const th = document.createElement("td");
       th.textContent = label;
       tr.append(th);
-      selected.forEach((option) => {
+      visibleOptions.forEach((option) => {
         const td = document.createElement("td");
         td.textContent = getter(option);
         tr.append(td);
@@ -345,458 +571,22 @@
     });
   }
 
-  function renderSources() {
-    elements.dataScope.textContent = evidence.scope;
-    elements.dataUpdated.textContent = `更新 ${evidence.updatedAt || "-"}`;
-    elements.sourceList.innerHTML = "";
-
-    evidence.sources.forEach((source) => {
-      const card = document.createElement("article");
-      const heading = document.createElement("h3");
-      const meta = document.createElement("p");
-      const link = document.createElement("a");
-      const status = document.createElement("span");
-
-      heading.textContent = source.name;
-      meta.textContent = `${source.owner} · ${source.coverage}`;
-      link.href = source.url;
-      link.target = "_blank";
-      link.rel = "noreferrer";
-      link.textContent = "來源";
-      status.textContent = source.status;
-
-      card.className = "source-card";
-      status.className = "status-pill subtle";
-      card.append(heading, meta, link, status);
-      elements.sourceList.append(card);
-    });
-  }
-
-  function renderRentBenchmarks() {
-    elements.rentBenchmarks.innerHTML = "";
-
-    evidence.rentBenchmarks.forEach((benchmark) => {
-      const tr = document.createElement("tr");
-      const range = `${formatCurrency(benchmark.minRent)}-${formatCurrency(benchmark.maxRent)}`;
-      [
-        benchmark.area,
-        `${benchmark.sampleCount} 筆`,
-        formatCurrency(benchmark.medianRent),
-        range,
-        benchmark.note
-      ].forEach((value) => {
-        const td = document.createElement("td");
-        td.textContent = value;
-        tr.append(td);
-      });
-      elements.rentBenchmarks.append(tr);
-    });
-  }
-
-  function renderCollectionQueue() {
-    elements.collectionQueue.innerHTML = "";
-
-    evidence.collectionQueue.forEach((item) => {
-      const li = document.createElement("li");
-      li.textContent = item;
-      elements.collectionQueue.append(li);
-    });
-  }
-
-  function makeExternalLink(label, url, className) {
-    const link = document.createElement("a");
-    link.href = url;
-    link.target = "_blank";
-    link.rel = "noreferrer";
-    link.textContent = label;
-    if (className) link.className = className;
-    return link;
-  }
-
-  function getSchoolWalkEstimate(choice, optionId) {
-    if (choice.schoolWalkDistanceLabel && choice.schoolWalkMinutesLabel) {
-      return {
-        distance: choice.schoolWalkDistanceLabel,
-        minutes: choice.schoolWalkMinutesLabel,
-        basis: choice.schoolWalkBasis || "以房源地址估計"
-      };
-    }
-
-    const fallback = {
-      "wanhua-longshan": ["約 0.8-2.0 km", "約 12-30 分", "以萬華近校生活圈估計"],
-      "ximen-xiaonanmen": ["約 2.0-3.5 km", "約 30-52 分", "以西門/小南門生活圈估計"],
-      "guting-nanmen": ["約 3.5-5.0 km", "約 50-75 分", "以古亭/南門生活圈估計"],
-      "banqiao-fuzhong": ["約 6.0-8.5 km", "約 90-130 分", "跨河步行不建議，主要供距離感參考"],
-      "dingxi-yongan": ["約 4.5-6.5 km", "約 65-100 分", "跨河步行不建議，主要供距離感參考"]
-    }[optionId] || ["待精確地址", "待精確地址", "需取得完整門牌"];
-
-    return {
-      distance: fallback[0],
-      minutes: fallback[1],
-      basis: fallback[2]
-    };
-  }
-
-  function getSchoolWalkUrl(choice) {
-    const origin = encodeURIComponent(`${choice.location} ${choice.title}`);
-    const destination = encodeURIComponent("台北市萬華區萬大路423巷15號 光仁小學");
-    return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=walking`;
-  }
-
-  function getMapPanelVisible() {
-    const panel = document.querySelector("#panel-map");
-    return Boolean(panel && !panel.hidden);
-  }
-
-  function getRouteItems() {
-    const items = [];
-    options.forEach((option) => {
-      getFilteredRentalChoices(option.id).forEach((choice) => {
-        const point = rentalMapPoints[choice.id];
-        if (!point) return;
-        items.push({
-          option,
-          choice,
-          point,
-          walk: getSchoolWalkEstimate(choice, option.id)
-        });
-      });
-    });
-    return items;
-  }
-
-  function getVisibleRouteItems(routeItems) {
-    return routeItems.filter((item) => !state.mapHiddenChoices.has(item.choice.id));
-  }
-
-  function makeMapIcon(type) {
-    return window.L.divIcon({
-      className: `map-div-icon ${type}-map-icon`,
-      html: '<span class="map-pin" aria-hidden="true"></span>',
-      iconSize: [24, 24],
-      iconAnchor: [12, 12]
-    });
-  }
-
-  function createRoutePopup(item) {
-    const popup = document.createElement("div");
-    const title = document.createElement("strong");
-    const meta = document.createElement("p");
-    const basis = document.createElement("p");
-    const route = makeExternalLink("Google 步行路線", getSchoolWalkUrl(item.choice), "secondary-link");
-
-    popup.className = "map-popup";
-    title.textContent = item.choice.title;
-    meta.textContent = `${item.option.name} · ${item.point.label} · ${item.walk.distance} / ${item.walk.minutes} · ${item.choice.petPolicyLabel || "寵物條件待確認"}`;
-    basis.textContent = item.walk.basis;
-    popup.append(title, meta, basis, route);
-    return popup;
-  }
-
-  function ensureMapInitialized() {
-    if (!elements.rentalMap || !window.L) return false;
-    if (mapState.map) return true;
-
-    mapState.map = window.L.map(elements.rentalMap, {
-      scrollWheelZoom: false
-    }).setView([schoolPoint.lat, schoolPoint.lng], 13);
-
-    window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(mapState.map);
-
-    mapState.layers = window.L.layerGroup().addTo(mapState.map);
-    window.L.marker([schoolPoint.lat, schoolPoint.lng], { icon: makeMapIcon("school") })
-      .bindPopup(`<strong>${schoolPoint.name}</strong><br>${schoolPoint.address}`)
-      .addTo(mapState.map);
-
-    return true;
-  }
-
-  function renderMapRouteList(routeItems) {
-    elements.mapRouteList.innerHTML = "";
-
-    if (routeItems.length === 0) {
-      const empty = document.createElement("div");
-      empty.className = "empty-state compact";
-      empty.textContent = "目前租賃條件下沒有可呈現的地圖項目，請放寬屋齡或寵物篩選。";
-      elements.mapRouteList.append(empty);
-      return;
-    }
-
-    routeItems.forEach((item) => {
-      const row = document.createElement("article");
-      const label = document.createElement("label");
-      const checkbox = document.createElement("input");
-      const text = document.createElement("div");
-      const title = document.createElement("h3");
-      const meta = document.createElement("p");
-      const route = makeExternalLink("Google 步行路線", getSchoolWalkUrl(item.choice), "secondary-link");
-
-      row.className = "map-route-row";
-      label.className = "map-toggle";
-      checkbox.type = "checkbox";
-      checkbox.checked = !state.mapHiddenChoices.has(item.choice.id);
-      checkbox.setAttribute("aria-label", `在地圖顯示 ${item.choice.title}`);
-      checkbox.addEventListener("change", () => {
-        if (checkbox.checked) state.mapHiddenChoices.delete(item.choice.id);
-        else state.mapHiddenChoices.add(item.choice.id);
-        renderRouteMap(getRouteItems());
-      });
-      title.textContent = item.choice.title;
-      meta.textContent = `${item.option.name} · ${item.point.label} · 到校步行 ${item.walk.distance}，${item.walk.minutes} · ${item.choice.petPolicyLabel || "寵物條件待確認"}`;
-      text.append(title, meta);
-      label.append(checkbox, text);
-      row.append(label, route);
-      elements.mapRouteList.append(row);
-    });
-  }
-
-  function renderRouteMap(routeItems) {
-    const visibleRouteItems = getVisibleRouteItems(routeItems);
-    const filterLabel = getRentalFilterLabel("");
-    elements.mapScope.textContent = `${rentalCatalog.scope} 目前條件：${filterLabel}；地圖顯示 ${visibleRouteItems.length} / ${routeItems.length} 筆。`;
-    elements.mapUpdated.textContent = `更新 ${rentalCatalog.updatedAt || "-"}`;
-    renderMapRouteList(routeItems);
-
-    if (!getMapPanelVisible()) return;
-
-    if (!ensureMapInitialized()) {
-      elements.rentalMap.textContent = "地圖套件未載入；下方仍保留每筆 Google 步行路線連結。";
-      return;
-    }
-
-    mapState.layers.clearLayers();
-    const bounds = window.L.latLngBounds([[schoolPoint.lat, schoolPoint.lng]]);
-
-    visibleRouteItems.forEach((item) => {
-      const marker = window.L.marker([item.point.lat, item.point.lng], { icon: makeMapIcon("rental") })
-        .bindPopup(createRoutePopup(item));
-
-      marker.addTo(mapState.layers);
-      bounds.extend([item.point.lat, item.point.lng]);
-    });
-
-    mapState.map.invalidateSize();
-    if (visibleRouteItems.length > 0) {
-      mapState.map.fitBounds(bounds, { padding: [28, 28], maxZoom: 13 });
-    } else {
-      mapState.map.setView([schoolPoint.lat, schoolPoint.lng], 13);
-    }
-  }
-
-  function renderRentalPreview(bestOption) {
-    elements.rentalPreviewList.innerHTML = "";
-    if (!window.RENTAL_CHOICES_BY_OPTION && !window.BEST_RENTAL_CHOICES) {
-      elements.rentalPreviewScope.textContent = "租屋資料尚未載入，請重新整理頁面。";
-      const empty = document.createElement("div");
-      empty.className = "empty-state compact";
-      empty.textContent = "租屋資料檔未載入；若剛更新過頁面，請重新整理或清除快取。";
-      elements.rentalPreviewList.append(empty);
-      return;
-    }
-
-    if (!bestOption) {
-      elements.rentalPreviewScope.textContent = "目前沒有符合條件的方案。";
-      return;
-    }
-
-    const choices = getFilteredRentalChoices(bestOption.id).slice(0, 3);
-    const filterLabel = getRentalFilterLabel("");
-    elements.rentalPreviewScope.textContent = `${bestOption.name} · ${filterLabel} · 顯示 ${choices.length} 筆`;
-
-    if (choices.length === 0) {
-      const empty = document.createElement("div");
-      empty.className = "empty-state compact";
-      empty.textContent = "目前條件下沒有租屋選擇，請放寬屋齡、寵物篩選，或切到完整細項檢查其他方案。";
-      elements.rentalPreviewList.append(empty);
-      return;
-    }
-
-    choices.forEach((choice) => {
-      const walk = getSchoolWalkEstimate(choice, bestOption.id);
-      const row = document.createElement("article");
-      const title = document.createElement("h3");
-      const meta = document.createElement("p");
-      const link = makeExternalLink("開啟房源", choice.url, "primary-link");
-      const route = makeExternalLink("步行路線", getSchoolWalkUrl(choice), "secondary-link");
-      const actions = document.createElement("div");
-
-      row.className = "rental-preview-row";
-      actions.className = "inline-actions";
-      title.textContent = choice.title;
-      meta.textContent = `${choice.rentLabel} · ${choice.layout} · ${choice.size} · ${choice.buildingAgeLabel} · ${choice.petPolicyLabel || "寵物條件待確認"} · 到校步行 ${walk.distance}`;
-      actions.append(link, route);
-      row.append(title, meta, actions);
-      elements.rentalPreviewList.append(row);
-    });
-  }
-
-  function renderRentalChoices() {
-    const filterLabel = getRentalFilterLabel("只看");
-    elements.rentalCandidateName.textContent = "各方案租賃選擇";
-    elements.rentalScope.textContent = `${rentalCatalog.scope} 目前條件：${filterLabel}。`;
-    elements.rentalUpdated.textContent = `更新 ${rentalCatalog.updatedAt || "-"}`;
-    elements.rentalChoices.innerHTML = "";
-    elements.rentalSearchLinks.innerHTML = "";
-
-    if (!window.RENTAL_CHOICES_BY_OPTION && !window.BEST_RENTAL_CHOICES) {
-      const empty = document.createElement("div");
-      empty.className = "empty-state";
-      empty.textContent = "租屋資料檔未載入；請重新整理頁面或清除瀏覽器快取。";
-      elements.rentalChoices.append(empty);
-      return;
-    }
-
-    options.forEach((option) => {
-      const group = getRentalGroup(option.id);
-      const choices = getFilteredRentalChoices(option.id);
-      const groupNode = document.createElement("section");
-      const heading = document.createElement("div");
-      const title = document.createElement("h3");
-      const count = document.createElement("span");
-      const list = document.createElement("div");
-      const links = document.createElement("div");
-
-      groupNode.className = "rental-option-group";
-      heading.className = "rental-group-heading";
-      count.className = "status-pill subtle";
-      list.className = "rental-choice-list";
-      links.className = "link-strip";
-
-      title.textContent = group.optionName || option.name;
-      count.textContent = `${choices.length} / 5 筆符合`;
-      heading.append(title, count);
-      groupNode.append(heading);
-
-      if (choices.length === 0) {
-        const empty = document.createElement("div");
-        empty.className = "empty-state compact";
-        empty.textContent = "目前屋齡或寵物條件下沒有符合的租屋選擇。";
-        list.append(empty);
-      }
-
-      choices.forEach((choice) => {
-        list.append(renderRentalCard(choice, option.id));
-      });
-
-      group.links.forEach((item) => {
-        links.append(makeExternalLink(item.label, item.url, "source-link"));
-      });
-
-      groupNode.append(list, links);
-      elements.rentalChoices.append(groupNode);
-    });
-  }
-
-  function renderRentalCard(choice, optionId) {
-    const card = document.createElement("article");
-    const top = document.createElement("div");
-    const titleWrap = document.createElement("div");
-    const title = document.createElement("h3");
-    const meta = document.createElement("p");
-    const fit = document.createElement("span");
-    const metrics = document.createElement("dl");
-    const detail = document.createElement("div");
-    const action = document.createElement("p");
-    const routeLinks = document.createElement("div");
-    const walk = getSchoolWalkEstimate(choice, optionId);
-
-    card.className = "rental-card";
-    top.className = "rental-card-top";
-    fit.className = "fit-badge";
-    metrics.className = "rental-metrics";
-    detail.className = "rental-detail-grid";
-    action.className = "next-action";
-    routeLinks.className = "inline-actions";
-
-    title.textContent = choice.title;
-    meta.textContent = `${choice.sourceName} · ${choice.location}`;
-    fit.textContent = `家庭適配 ${choice.familyFit}`;
-    titleWrap.append(title, meta);
-    top.append(titleWrap, fit);
-
-    [
-      ["月租", choice.rentLabel],
-      ["格局", choice.layout],
-      ["坪數", choice.size],
-      ["樓層", choice.floor],
-      ["屋齡", choice.buildingAgeLabel],
-      ["寵物", choice.petPolicyLabel || "待房東確認"],
-      ["到校步行", walk.distance],
-      ["步行時間", walk.minutes],
-      ["距離", choice.distanceLabel],
-      ["通學判斷", choice.commuteFit]
-    ].forEach(([label, value]) => {
-      metrics.append(metric(label, value));
-    });
-
-    detail.append(
-      listBlock("優點", choice.highlights),
-      listBlock("風險", choice.risks)
-    );
-
-    action.textContent = choice.nextAction;
-    routeLinks.append(
-      makeExternalLink("開啟房源", choice.url, "primary-link"),
-      makeExternalLink("Google 步行路線", getSchoolWalkUrl(choice), "secondary-link")
-    );
-
-    card.append(
-      top,
-      metrics,
-      detail,
-      action,
-      routeLinks
-    );
-    return card;
-  }
-
-  function activateTab(tabName) {
-    elements.tabs.forEach((tab) => {
-      const isActive = tab.dataset.tab === tabName;
-      tab.classList.toggle("active", isActive);
-      tab.setAttribute("aria-selected", `${isActive}`);
-    });
-
-    elements.tabPanels.forEach((panel) => {
-      const isActive = panel.id === `panel-${tabName}`;
-      panel.classList.toggle("active", isActive);
-      panel.hidden = !isActive;
-    });
-
-    if (tabName === "map") {
-      renderRouteMap(getRouteItems());
-      window.setTimeout(() => {
-        if (mapState.map) mapState.map.invalidateSize();
-      }, 0);
-    }
-  }
-
-  function updateWeightLabels() {
-    const total = Object.values(state.weights).reduce((sum, value) => sum + value, 0);
-    elements.weightTotal.textContent = `${total}%`;
-    document.querySelectorAll(".weight").forEach((input) => {
-      input.nextElementSibling.textContent = input.value;
-    });
-  }
-
   function buildSummaryText() {
-    const ranked = getFilteredOptions().slice(0, 3);
-    if (ranked.length === 0) return "目前沒有符合條件的候選方案。";
+    const ranked = getVisibleOptions().slice(0, 4);
+    if (ranked.length === 0) return "目前沒有符合條件的區域。";
 
     const lines = [
-      "台北第二居住點候選摘要",
-      `篩選條件：月租上限 ${formatRent(state.filters.rentLimit)}，到校上限 ${state.filters.commuteLimit} 分`,
+      "台北居住區域推薦摘要",
+      `偏好：${elements.priority.options[elements.priority.selectedIndex].textContent}`,
+      `篩選：月租上限 ${formatRent(state.filters.rentLimit)}；到校上限 ${state.filters.commuteLimit} 分`,
       ""
     ];
 
     ranked.forEach((option, index) => {
       lines.push(
-        `${index + 1}. ${option.name}：${option.score} 分`,
-        `   到校 ${option.commuteRange}；月租 ${option.rentLabel}；路線 ${option.route}`,
-        `   主要風險：${option.risks.join("；")}`,
+        `${index + 1}. ${option.name}：${option.score} 分，${getRecommendationLabel(option)}`,
+        `   到校 ${option.commuteRange}；月租 ${option.rentLabel}；${option.recommendation || option.strengths[0]}`,
+        `   驗證重點：${option.checks.join("；")}`,
         ""
       );
     });
@@ -810,27 +600,57 @@
       await navigator.clipboard.writeText(text);
       elements.copySummary.textContent = "已複製";
       window.setTimeout(() => {
-        elements.copySummary.textContent = "複製摘要";
+        elements.copySummary.textContent = "複製推薦摘要";
       }, 1600);
     } catch (_error) {
       window.prompt("複製以下摘要", text);
     }
   }
 
-  function render() {
-    updateWeightLabels();
-    const filteredOptions = getFilteredOptions();
-    const bestOption = getBestOption(filteredOptions);
-    renderSummary(filteredOptions);
-    renderCards(filteredOptions);
-    renderCompareTable();
-    renderSources();
-    renderRentBenchmarks();
-    renderCollectionQueue();
-    renderRentalPreview(bestOption);
-    renderRentalChoices();
-    renderRouteMap(getRouteItems());
+  function addRegion(input) {
+    const trimmed = input.trim();
+    if (!trimmed) {
+      elements.addRegionStatus.textContent = "請先輸入區域名稱。";
+      return;
+    }
+
+    const inferred = inferOption(trimmed);
+    const duplicate = state.optionPool.find((option) => {
+      return option.id === inferred.id || option.name === inferred.name;
+    });
+
+    const option = duplicate || inferred;
+    if (!duplicate) state.optionPool.push(option);
+    state.selected.add(option.id);
+    elements.regionInput.value = "";
+    elements.addRegionStatus.textContent = duplicate ? `${option.name} 已在比較清單中。` : `已新增 ${option.name}。`;
+    render();
   }
+
+  function render() {
+    const visibleOptions = getVisibleOptions();
+    renderSelectedRegions();
+    renderSummary(visibleOptions);
+    renderCards(visibleOptions);
+    renderCompareTable(visibleOptions);
+  }
+
+  elements.addRegionForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    addRegion(elements.regionInput.value);
+  });
+
+  elements.resetRegions.addEventListener("click", () => {
+    state.selected = new Set(baseOptions.slice(0, 3).map((option) => option.id));
+    state.optionPool = [...baseOptions];
+    elements.addRegionStatus.textContent = "已回到預設三個比較區域。";
+    render();
+  });
+
+  elements.priority.addEventListener("change", (event) => {
+    state.priority = event.target.value;
+    render();
+  });
 
   elements.rentLimit.addEventListener("change", (event) => {
     state.filters.rentLimit = Number(event.target.value);
@@ -842,45 +662,6 @@
     render();
   });
 
-  elements.buildingAgeLimit.addEventListener("change", (event) => {
-    state.filters.buildingAgeLimit = Number(event.target.value);
-    render();
-  });
-
-  elements.petFriendlyOnly.addEventListener("change", (event) => {
-    state.filters.petFriendlyOnly = event.target.checked;
-    render();
-  });
-
-  elements.directOnly.addEventListener("change", (event) => {
-    state.filters.directOnly = event.target.checked;
-    render();
-  });
-
-  elements.resetFilters.addEventListener("click", () => {
-    state.filters = {
-      rentLimit: 50000,
-      commuteLimit: 40,
-      buildingAgeLimit: 999,
-      petFriendlyOnly: false,
-      directOnly: false
-    };
-    elements.rentLimit.value = "50000";
-    elements.commuteLimit.value = "40";
-    elements.buildingAgeLimit.value = "999";
-    elements.petFriendlyOnly.checked = false;
-    elements.directOnly.checked = false;
-    state.mapHiddenChoices.clear();
-    render();
-  });
-
-  document.querySelectorAll(".weight").forEach((input) => {
-    input.addEventListener("input", (event) => {
-      state.weights[event.target.dataset.key] = Number(event.target.value);
-      render();
-    });
-  });
-
   document.querySelectorAll(".segment").forEach((button) => {
     button.addEventListener("click", () => {
       document.querySelectorAll(".segment").forEach((item) => item.classList.remove("active"));
@@ -890,16 +671,8 @@
     });
   });
 
-  elements.tabs.forEach((tab) => {
-    tab.addEventListener("click", () => activateTab(tab.dataset.tab));
-  });
-
-  elements.showRentalDetails.addEventListener("click", () => {
-    activateTab("rentals");
-    document.querySelector("#panel-rentals").scrollIntoView({ block: "start", behavior: "smooth" });
-  });
-
   elements.copySummary.addEventListener("click", copySummary);
 
+  renderSuggestions();
   render();
 })();

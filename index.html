@@ -3,15 +3,14 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>台北第二居住點互動比較</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <title>台北居住區域比較</title>
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
     <header class="app-header">
       <div>
         <p class="eyebrow">光仁小學通學規劃 · 2026/08</p>
-        <h1>第二居住點互動比較</h1>
+        <h1>台北居住區域比較與推薦</h1>
       </div>
       <div class="header-meta" aria-label="固定規劃條件">
         <span>目的地：臺北市萬華區萬大路423巷15號</span>
@@ -20,19 +19,52 @@
     </header>
 
     <main class="layout">
-      <aside class="controls" aria-label="比較設定">
+      <aside class="controls" aria-label="區域比較設定">
         <section class="panel">
           <div class="section-heading">
-            <h2>篩選</h2>
-            <button class="text-button" id="resetFilters" type="button">重設</button>
+            <h2>新增區域</h2>
           </div>
+          <form id="addRegionForm" class="region-form">
+            <label class="field">
+              <span>輸入行政區、捷運站或生活圈</span>
+              <input id="regionInput" list="regionSuggestions" type="text" placeholder="例如：信義區、士林、南京復興">
+            </label>
+            <datalist id="regionSuggestions"></datalist>
+            <button class="primary-button" type="submit">新增比較</button>
+            <p id="addRegionStatus" class="form-status" role="status" aria-live="polite"></p>
+          </form>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading">
+            <h2>目前比較</h2>
+            <button class="text-button" id="resetRegions" type="button">重設</button>
+          </div>
+          <div id="selectedRegions" class="selected-regions" aria-live="polite"></div>
+        </section>
+
+        <section class="panel">
+          <div class="section-heading">
+            <h2>推薦偏好</h2>
+          </div>
+
+          <label class="field">
+            <span>主要判準</span>
+            <select id="priority">
+              <option value="balanced" selected>均衡推薦</option>
+              <option value="commute">通學穩定優先</option>
+              <option value="rent">租金壓力優先</option>
+              <option value="livability">生活品質優先</option>
+              <option value="zhongli">中壢往返優先</option>
+            </select>
+          </label>
 
           <label class="field">
             <span>月租上限</span>
             <select id="rentLimit">
               <option value="70000">NT$70k</option>
-              <option value="60000">NT$60k</option>
-              <option value="50000" selected>NT$50k</option>
+              <option value="60000" selected>NT$60k</option>
+              <option value="50000">NT$50k</option>
               <option value="45000">NT$45k</option>
               <option value="40000">NT$40k</option>
             </select>
@@ -41,206 +73,62 @@
           <label class="field">
             <span>到校時間上限</span>
             <select id="commuteLimit">
-              <option value="50">50 分</option>
-              <option value="40" selected>40 分</option>
+              <option value="55">55 分</option>
+              <option value="45" selected>45 分</option>
+              <option value="40">40 分</option>
               <option value="30">30 分</option>
               <option value="20">20 分</option>
             </select>
-          </label>
-
-          <label class="field">
-            <span>租屋屋齡上限</span>
-            <select id="buildingAgeLimit">
-              <option value="999" selected>不限</option>
-              <option value="40">40 年內</option>
-              <option value="30">30 年內</option>
-              <option value="20">20 年內</option>
-              <option value="10">10 年內</option>
-            </select>
-          </label>
-
-          <label class="check-row">
-            <input id="petFriendlyOnly" type="checkbox">
-            <span>只看寵物友善候選</span>
-          </label>
-
-          <label class="check-row">
-            <input id="directOnly" type="checkbox">
-            <span>只看免轉乘或短程接送</span>
-          </label>
-        </section>
-
-        <section class="panel">
-          <div class="section-heading">
-            <h2>權重</h2>
-            <output id="weightTotal">100%</output>
-          </div>
-
-          <label class="slider-field">
-            <span>通學穩定</span>
-            <input class="weight" data-key="commute" type="range" min="0" max="50" value="35">
-            <output>35</output>
-          </label>
-          <label class="slider-field">
-            <span>接送便利</span>
-            <input class="weight" data-key="pickup" type="range" min="0" max="50" value="20">
-            <output>20</output>
-          </label>
-          <label class="slider-field">
-            <span>租金壓力</span>
-            <input class="weight" data-key="rent" type="range" min="0" max="50" value="15">
-            <output>15</output>
-          </label>
-          <label class="slider-field">
-            <span>中壢往返</span>
-            <input class="weight" data-key="zhongli" type="range" min="0" max="50" value="10">
-            <output>10</output>
-          </label>
-          <label class="slider-field">
-            <span>備援能力</span>
-            <input class="weight" data-key="backup" type="range" min="0" max="50" value="10">
-            <output>10</output>
-          </label>
-          <label class="slider-field">
-            <span>生活品質</span>
-            <input class="weight" data-key="livability" type="range" min="0" max="50" value="10">
-            <output>10</output>
           </label>
         </section>
 
         <section class="panel">
           <h2>排序</h2>
           <div class="segmented" role="group" aria-label="排序方式">
-            <button class="segment active" data-sort="score" type="button">總分</button>
+            <button class="segment active" data-sort="score" type="button">推薦</button>
             <button class="segment" data-sort="commute" type="button">通學</button>
             <button class="segment" data-sort="rent" type="button">租金</button>
           </div>
         </section>
       </aside>
 
-      <section class="workspace" aria-label="候選居住點比較">
+      <section class="workspace" aria-label="區域特性比較">
         <div class="toolbar">
           <div>
-            <h2>候選方案</h2>
+            <h2>區域特性比較</h2>
             <p id="resultCount">載入中</p>
           </div>
-          <button id="copySummary" class="primary-button" type="button">複製摘要</button>
+          <button id="copySummary" class="primary-button" type="button">複製推薦摘要</button>
         </div>
 
-        <div class="workspace-tabs" role="tablist" aria-label="工作區分頁">
-          <button id="tab-overview" class="workspace-tab active" data-tab="overview" type="button" role="tab" aria-selected="true" aria-controls="panel-overview">方案總覽</button>
-          <button id="tab-rentals" class="workspace-tab" data-tab="rentals" type="button" role="tab" aria-selected="false" aria-controls="panel-rentals">各方案租賃選擇</button>
-          <button id="tab-map" class="workspace-tab" data-tab="map" type="button" role="tab" aria-selected="false" aria-controls="panel-map">步行路線地圖</button>
-        </div>
-
-        <section id="panel-overview" class="tab-panel active" role="tabpanel" aria-labelledby="tab-overview">
-          <section class="summary-strip" aria-label="目前最佳方案">
-            <div>
-              <span class="metric-label">目前最高分</span>
-              <strong id="bestName">-</strong>
-            </div>
-            <div>
-              <span class="metric-label">到校估計</span>
-              <strong id="bestCommute">-</strong>
-            </div>
-            <div>
-              <span class="metric-label">月租估計</span>
-              <strong id="bestRent">-</strong>
-            </div>
-          </section>
-
-          <section class="rental-preview-panel" aria-label="目前最佳方案租屋選擇摘要">
-            <div class="section-heading">
-              <div>
-                <h2>目前最佳方案租屋摘要</h2>
-                <p id="rentalPreviewScope">載入中</p>
-              </div>
-              <button id="showRentalDetails" class="text-button strong" type="button">完整細項</button>
-            </div>
-            <div id="rentalPreviewList" class="rental-preview-list"></div>
-          </section>
-
-          <section class="data-panel" aria-label="資料採集狀態">
-            <div class="section-heading">
-              <div>
-                <h2>資料採集</h2>
-                <p id="dataScope">載入中</p>
-              </div>
-              <span id="dataUpdated" class="status-pill">-</span>
-            </div>
-
-            <div id="sourceList" class="source-list"></div>
-
-            <div class="table-wrap compact-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>區域</th>
-                    <th>樣本</th>
-                    <th>租金中位</th>
-                    <th>範圍</th>
-                    <th>備註</th>
-                  </tr>
-                </thead>
-                <tbody id="rentBenchmarks"></tbody>
-              </table>
-            </div>
-
-            <div class="queue-block">
-              <h3>下一批資料</h3>
-              <ul id="collectionQueue"></ul>
-            </div>
-          </section>
-
-          <div id="cards" class="cards" aria-live="polite"></div>
-
-          <section class="compare-section">
-            <div class="section-heading">
-              <h2>並排比較</h2>
-              <span class="hint">勾選候選方案後會出現在表格中</span>
-            </div>
-            <div class="table-wrap">
-              <table>
-                <thead id="compareHead"></thead>
-                <tbody id="compareBody"></tbody>
-              </table>
-            </div>
-          </section>
+        <section class="recommendation-panel" aria-label="目前推薦">
+          <div>
+            <span class="metric-label">目前推薦</span>
+            <strong id="bestName">-</strong>
+          </div>
+          <div>
+            <span class="metric-label">推薦理由</span>
+            <p id="bestReason">-</p>
+          </div>
+          <div>
+            <span class="metric-label">需要驗證</span>
+            <p id="bestCaution">-</p>
+          </div>
         </section>
 
-        <section id="panel-rentals" class="tab-panel" role="tabpanel" aria-labelledby="tab-rentals" hidden>
-          <section class="rental-panel" aria-label="各方案租賃選擇">
-            <div class="section-heading">
-              <div>
-                <h2 id="rentalCandidateName">最佳方案租賃選擇</h2>
-                <p id="rentalScope">載入中</p>
-              </div>
-              <span id="rentalUpdated" class="status-pill">-</span>
-            </div>
+        <div id="cards" class="cards" aria-live="polite"></div>
 
-            <div id="rentalChoices" class="rental-choice-list"></div>
-
-            <div class="link-strip" id="rentalSearchLinks" aria-label="租屋搜尋連結"></div>
-          </section>
-        </section>
-
-        <section id="panel-map" class="tab-panel" role="tabpanel" aria-labelledby="tab-map" hidden>
-          <section class="map-panel" aria-label="租賃選項地圖">
-            <div class="section-heading">
-              <div>
-                <h2>租賃選項地圖</h2>
-                <p id="mapScope">以光仁小學為中心，標示目前租賃篩選條件下的候選區域。</p>
-              </div>
-              <span id="mapUpdated" class="status-pill">-</span>
-            </div>
-            <div class="map-legend" aria-label="地圖圖例">
-              <span><i class="legend-dot school-dot" aria-hidden="true"></i>光仁小學</span>
-              <span><i class="legend-dot rental-dot" aria-hidden="true"></i>租賃選項區域</span>
-            </div>
-            <div id="rentalMap" class="rental-map" role="img" aria-label="光仁小學與租賃選項區域位置地圖"></div>
-            <p class="map-note">地圖只顯示點位，不繪製路線。點位以房源公開地段或搜尋生活圈估算；下方項目可勾選決定是否顯示在地圖上。</p>
-            <div id="mapRouteList" class="map-route-list" aria-label="地圖項目清單"></div>
-          </section>
+        <section class="compare-section">
+          <div class="section-heading">
+            <h2>並排比較</h2>
+            <span class="hint">只顯示目前加入比較且符合篩選條件的區域</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead id="compareHead"></thead>
+              <tbody id="compareBody"></tbody>
+            </table>
+          </div>
         </section>
       </section>
     </main>
@@ -248,33 +136,24 @@
     <template id="cardTemplate">
       <article class="option-card">
         <div class="card-top">
-          <label class="select-option">
-            <input type="checkbox">
-            <span></span>
-          </label>
+          <div>
+            <h3></h3>
+            <p class="option-meta"></p>
+          </div>
           <span class="score-badge"></span>
         </div>
-        <div class="option-meta"></div>
-        <div class="route-visual" aria-hidden="true">
-          <span class="node home"></span>
-          <span class="line"></span>
-          <span class="node transit"></span>
-          <span class="line"></span>
-          <span class="node school"></span>
-        </div>
         <dl class="metrics"></dl>
+        <div class="recommendation-text"></div>
         <div class="tag-list"></div>
         <details>
-          <summary>風險與現場勘查</summary>
+          <summary>風險與現場驗證</summary>
           <div class="detail-grid"></div>
         </details>
       </article>
     </template>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="data/evidence.js?v=20260626-map2"></script>
-    <script src="data/options.js?v=20260626-map2"></script>
-    <script src="data/rental-choices.js?v=20260626-map2"></script>
-    <script src="app.js?v=20260626-map2"></script>
+    <script src="data/evidence.js?v=20260626-region"></script>
+    <script src="data/options.js?v=20260626-region"></script>
+    <script src="app.js?v=20260626-region"></script>
   </body>
 </html>

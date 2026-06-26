@@ -1,15 +1,15 @@
 # Taipei Rental Plan
 
-這個專案用來規劃 2026/08 起光仁小學通學與第二居住點選擇。
+這個專案用來規劃 2026/08 起光仁小學通學與第二居住點選擇。首頁目前聚焦在「區域特性比較與推薦」，不再把房源細項、資料採集清單和地圖放在主要流程中。
 
 ## 目前成果
 
 - `index.html`: 可直接開啟的互動比較網頁。
-- `styles.css`: 介面樣式。
-- `app.js`: 篩選、排序、權重計分、比較表與摘要產生邏輯。
-- `data/options.js`: 候選居住點資料。現在是示範資料，後續應替換為實查房源與交通紀錄。
-- `data/evidence.js`: 第一批資料來源、租金摘要與下一步採集清單。
-- `data/rental-choices.js`: 各候選方案下的租賃選擇、屋齡、看屋重點與外部連結。
+- `styles.css`: 區域比較、推薦面板與響應式版面樣式。
+- `app.js`: 區域新增、篩選、排序、推薦計分、比較表與摘要產生邏輯。
+- `data/options.js`: 已整理的核心候選區域資料。
+- `data/evidence.js`: 政府資料來源與租金摘要，供區域卡片補充租金背景。
+- `data/rental-choices.js`: 舊版房源細項資料仍保留作為後續看屋參考，但首頁不再載入。
 
 ## 線上部署
 
@@ -27,40 +27,53 @@ https://audachang.github.io/taipei-rental-plan/
 C:\Users\audachang\Dropbox\09_AI-testing-sites\Codex\taipei-rental-plan\index.html
 ```
 
-若之後需要接 API 或載入外部 JSON，可以再改成小型前端專案或啟動本機伺服器。
+## 新增比較區域
 
-## 更新候選點
+在頁面左側輸入行政區、捷運站或生活圈名稱，例如：
 
-編輯 `data/options.js` 的 `window.RENTAL_OPTIONS`。每個候選點建議至少保留：
+- `信義區`
+- `士林`
+- `南京復興`
+- `板橋`
+- `頂溪`
+
+如果輸入名稱能對應到 `data/options.js` 的既有候選區，會直接加入該區域。若是常見生活圈，`app.js` 會用 `regionPresets` 產生可比較的初估卡。若無法辨識，仍會建立一張「初估區域」卡，但會標示需要用實際地址校正。
+
+## 更新候選區域
+
+核心候選區請優先編輯 `data/options.js` 的 `window.RENTAL_OPTIONS`。每個候選點建議至少保留：
 
 - `name`: 候選區域名稱。
 - `district`: 行政區或生活圈。
-- `rent`: 月租估計或實際房源租金。
+- `type`: 區域定位，例如近校優先、生活品質優先、空間預算折衷。
+- `rent`: 用於計分的月租估計。
+- `rentLabel`: 顯示用月租範圍。
 - `commuteMinutes`: 平日早上到光仁小學的估計分鐘數。
+- `commuteRange`: 顯示用通學時間範圍。
 - `walkMinutes`: 到主要交通節點或學校端步行時間。
 - `transfers`: 轉乘次數。
 - `pickupScore`: 接送便利性，1 到 5 分。
 - `zhongliScore`: 往返中壢/中大北村便利性，1 到 5 分。
 - `backupScore`: 雨天、臨時接送、計程車備援便利性，1 到 5 分。
 - `livabilityScore`: 居住機能與家庭生活便利性，1 到 5 分。
+- `strengths`: 區域優點。
 - `risks`: 主要風險。
-- `checks`: 現場勘查事項。
+- `checks`: 現場驗證事項。
 
-## 更新租賃選擇
+## 更新名稱推估模板
 
-編輯 `data/rental-choices.js` 的 `window.RENTAL_CHOICES_BY_OPTION`。每個候選方案用 `optionId` 對應到 `data/options.js`，每組維持 5 筆 `choices`。屋齡篩選使用 `buildingAgeYears`，不確定屋齡的搜尋入口可填 `999`，讓它只在「不限」時出現。
+如果希望輸入某些新生活圈時能產生更準的初估分析，編輯 `app.js` 的 `regionPresets`。每個模板包含：
 
-寵物友善篩選使用 `petPolicyStatus` 與 `petPolicyLabel`。目前 `candidate` 代表搜尋入口可加寵物條件查找，`unknown` 代表具體房源尚未從公開資料確認；不要把未確認房源標成寵物友善。
+- `aliases`: 可觸發模板的輸入名稱。
+- `option`: 區域特性、租金、通學、分數、推薦理由與驗證事項。
 
-到光仁小學步行距離使用 `schoolWalkDistanceLabel`、`schoolWalkMinutesLabel`、`schoolWalkBasis`。目前多數是生活圈估計，不是精確門牌實算；取得完整地址後應更新這三個欄位，並用頁面上的 Google Maps 步行路線連結核對。
-
-租賃選項地圖使用 Leaflet 與 OpenStreetMap 圖磚。地圖座標目前維護在 `app.js` 的 `rentalMapPoints`，以公開地段或搜尋生活圈標示租賃區域；地圖只顯示點位，不繪製路線。更新完整門牌後，需同步修正座標與上方步行距離欄位。
+未知區域會使用 `defaultRegion` 建立初估卡。這類卡只適合先放入比較清單，不應作為最終決策。
 
 ## 資料品質規則
 
-不要把估計值和實測值混在一起。實測後請在 `evidence` 裡標示日期、時段、資料來源與是否為雨天/尖峰。
+不要把估計值和實測值混在一起。實測後請在對應區域的 `evidence` 或說明文字裡標示日期、時段、資料來源與是否為雨天/尖峰。
 
-租屋平台連結是即時市場線索，不是穩定資料。每次看屋或決策前都要重新點開 `data/rental-choices.js` 裡的連結，確認房源仍存在、價格未變、地址可核對。
+輸入區域名稱產生的卡片是規劃工具，不是即時租屋或交通查詢。決策前仍需用候選房源門牌重算到校時間、確認租金、屋齡、管理費、可否開伙、可否報稅/租補與兒童生活風險。
 
 ## 目前資料來源
 
