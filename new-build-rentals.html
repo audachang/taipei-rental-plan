@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>光仁小學周邊新建案出租地圖</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23c65f28'/%3E%3Cpath d='M3 8h10v5H3zM5 5h6v3H5z' fill='white'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">光仁小學通學規劃 · 七年內新建案</p>
+        <h1>光仁小學周邊新建案出租地圖</h1>
+        <nav class="page-nav" aria-label="頁面導覽">
+          <a href="index.html">區域比較</a>
+          <a href="rental-search.html">房源廣搜推薦</a>
+          <a aria-current="page" href="new-build-rentals.html">新建案出租地圖</a>
+        </nav>
+      </div>
+      <div class="header-meta" aria-label="固定規劃條件">
+        <span>中心：光仁小學</span>
+        <span>範圍：已完工七年內建案</span>
+        <span>用途：看屋排序與追蹤</span>
+      </div>
+    </header>
+
+    <main class="new-build-page" aria-label="光仁小學周邊新建案出租地圖與表格">
+      <section class="map-hero">
+        <div>
+          <span class="metric-label">中心點</span>
+          <h2 id="schoolName">光仁小學</h2>
+          <p id="schoolAddress">臺北市萬華區萬大路423巷15號</p>
+        </div>
+        <div class="map-actions">
+          <a id="schoolGoogleLink" class="primary-button" target="_blank" rel="noopener noreferrer">在 Google Maps 開啟中心點</a>
+          <button id="copyMapBrief" class="text-button" type="button">複製租案摘要</button>
+        </div>
+      </section>
+
+      <section class="map-filter-bar" aria-label="地圖篩選">
+        <label class="field inline-field">
+          <span>租案狀態</span>
+          <select id="statusFilter">
+            <option value="all" selected>全部</option>
+            <option value="active">公開待租/需確認</option>
+            <option value="track">歷史行情與追蹤</option>
+            <option value="none">未查到公開待租</option>
+          </select>
+        </label>
+        <label class="field inline-field">
+          <span>排序</span>
+          <select id="sortRentals">
+            <option value="priority" selected>可看屋優先</option>
+            <option value="distance">離光仁小學近</option>
+            <option value="rent">租金低到高</option>
+            <option value="age">屋齡新到舊</option>
+          </select>
+        </label>
+        <div class="legend" aria-label="地圖圖例">
+          <span><i class="legend-dot active"></i>公開待租</span>
+          <span><i class="legend-dot watch"></i>歷史/需確認</span>
+          <span><i class="legend-dot none"></i>未查到</span>
+          <span><i class="legend-dot school"></i>光仁小學</span>
+        </div>
+      </section>
+
+      <section class="map-split" aria-label="可拖曳調整比例的地圖與租案表格">
+        <div class="map-pane">
+          <div id="rentalMap" class="rental-map" aria-label="光仁小學與周邊租案標記地圖"></div>
+          <div class="google-map-frame" aria-label="Google Map 展示圖">
+            <iframe
+              title="光仁小學 Google Map 展示圖"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+              src="https://www.google.com/maps?q=%E8%87%BA%E5%8C%97%E5%B8%82%E8%90%AC%E8%8F%AF%E5%8D%80%E8%90%AC%E5%A4%A7%E8%B7%AF423%E5%B7%B715%E8%99%9F&z=15&output=embed">
+            </iframe>
+          </div>
+        </div>
+        <button id="splitHandle" class="split-handle" type="button" aria-label="拖曳調整地圖與表格比例" title="拖曳調整地圖與表格比例"></button>
+        <aside class="rental-pane" aria-label="租案列表">
+          <div class="section-heading">
+            <div>
+              <h2>租案追蹤表</h2>
+              <p id="rentalCount" class="hint">載入中</p>
+            </div>
+          </div>
+          <div class="table-wrap rental-table-wrap">
+            <table class="rental-table">
+              <thead>
+                <tr>
+                  <th>建案/租案</th>
+                  <th>狀態</th>
+                  <th>租金</th>
+                  <th>格局/坪數</th>
+                  <th>離中心</th>
+                  <th>來源</th>
+                </tr>
+              </thead>
+              <tbody id="rentalTableBody"></tbody>
+            </table>
+          </div>
+        </aside>
+      </section>
+
+      <section class="compare-section map-notes">
+        <div class="section-heading">
+          <h2>資料注意事項</h2>
+          <span id="updatedAt" class="hint"></span>
+        </div>
+        <ul id="dataNotes"></ul>
+      </section>
+    </main>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="data/new-build-rentals.js?v=20260627-map"></script>
+    <script src="new-build-rentals.js?v=20260627-map"></script>
+  </body>
+</html>

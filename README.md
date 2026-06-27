@@ -6,6 +6,7 @@
 
 - `index.html`: 可直接開啟的互動比較網頁。
 - `rental-search.html`: 針對選定區域的房源廣搜與推薦網頁。
+- `new-build-rentals.html`: 光仁小學周邊七年內新建案出租追蹤地圖，含可拖曳比例的地圖/表格工作區。
 - `styles.css`: 區域比較、推薦面板與響應式版面樣式。
 - `app.js`: 區域新增、篩選、排序、推薦計分、比較表與摘要產生邏輯。
 - `rental-search.js`: 房源入口產生、房源排序、仲介聯絡文字與看屋清單複製邏輯。
@@ -33,6 +34,12 @@ C:\Users\audachang\Dropbox\09_AI-testing-sites\Codex\taipei-rental-plan\index.ht
 
 ```text
 C:\Users\audachang\Dropbox\09_AI-testing-sites\Codex\taipei-rental-plan\rental-search.html
+```
+
+或開啟七年內新建案出租地圖：
+
+```text
+C:\Users\audachang\Dropbox\09_AI-testing-sites\Codex\taipei-rental-plan\new-build-rentals.html
 ```
 
 ## 房源廣搜推薦
